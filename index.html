@@ -28,8 +28,8 @@
 
   // Map each logical sheet to its GID in the published sheet
   const SHEETS = {
-    INVENTORY: { gid: 0 },       // replace 0 with the actual GID of your "Inventory" sheet
-    RECIPES:   { gid: 123456789 } // replace 123456789 with the actual GID of your "DrinkList" sheet
+    INVENTORY: { gid: 310073761 },       // Inventory sheet GID
+    RECIPES:   { gid: 358185124 } // DrinkList sheet GID
   };
   const CURRENCY   = '€';
   const REFRESH_MS = 5 * 60 * 1000;  // 5 min
@@ -41,7 +41,7 @@
     `${PUB_BASE}/pub?gid=${sheet.gid}&single=true&output=csv`;
 
   const slug = str => str.toLowerCase().normalize('NFD')
-                        .replace(/[̀-\u036f]/g, '')
+                        .replace(/[\u0300-\u036f]/g, '')
                         .replace(/\s+/g, '_')
                         .replace(/[^\w\-]/g, '');
   const toNum = v => {
@@ -124,19 +124,19 @@
   }
 
   /* === UI HELPERS & RENDER ============================================ */
-  const dot = avail => `<span class="status ${avail?'ok':'no'}"></span>`;
-  const statusDot = d => `<span class="status ${d.available?'ok':'no'}" title="${d.available?'All ingredients in stock':'Missing: '+d.missing.join(', ')}"></span>`;
+  const dot = avail => `<span class=\"status ${avail?'ok':'no'}\"></span>`;
+  const statusDot = d => `<span class=\"status ${d.available?'ok':'no'}\" title=\"${d.available?'All ingredients in stock':'Missing: '+d.missing.join(', ')}\"></span>`;
 
   function renderList(drinksMap, shots){
     const drinks = Object.values(drinksMap).sort((a,b)=>a.name.localeCompare(b.name));
     const app=document.getElementById('app');
     app.innerHTML='<h1>Drinks</h1>';
     const tbl=document.createElement('table');
-    tbl.innerHTML='<thead><tr><th>Drink</th><th style="text-align:center;width:1%">Availability</th><th>Price</th></tr></thead>';
+    tbl.innerHTML='<thead><tr><th>Drink</th><th style=\"text-align:center;width:1%\">Availability</th><th>Price</th></tr></thead>';
     const tbody=document.createElement('tbody');
     drinks.forEach(d=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
+      tr.innerHTML=`<td><a href=\"?drink=${encodeURIComponent(d.name)}\">${d.name}</a></td><td style=\"text-align:center\">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody);
@@ -144,8 +144,37 @@
     if(shots.length){
       app.insertAdjacentHTML('beforeend','<h2>Shots</h2>');
       const sTbl=document.createElement('table');
-      sTbl.innerHTML='<thead><tr><th>Shot (40 ml)</th><th style="text-align:center;width:1%">Availability</th><th>Price</th></tr></thead>';
+      sTbl.innerHTML='<thead><tr><th>Shot (40 ml)</th><th style=\"text-align:center;width:1%\">Availability</th><th>Price</th></tr></thead>';
       const sBody=document.createElement('tbody');
       shots.forEach(s=>{
         const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</
+        tr.innerHTML=`<td>${s.name}</td><td style=\"text-align:center\">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+        sBody.appendChild(tr);
+      });
+      sTbl.appendChild(sBody);
+      app.appendChild(sTbl);
+    }
+  }
+
+  async function render(){
+    try{
+      const { drinks, shots } = await loadBarData();
+      const urlParams = new URLSearchParams(window.location.search);
+      const drinkParam = urlParams.get('drink');
+      if(drinkParam){
+        const d = drinks[drinkParam];
+        if(!d) throw new Error(`Unknown drink: ${drinkParam}`);
+        renderDetails(d);
+      } else {
+        renderList(drinks, shots);
+      }
+    }catch(e){
+      document.getElementById('app').innerHTML=`<p class=\"err\">${e.message}</p>`;
+      console.error(e);
+    }
+  }
+  render();
+  setInterval(render, REFRESH_MS);
+  </script>
+</body>
+</html>
