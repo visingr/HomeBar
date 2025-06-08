@@ -1,10 +1,3 @@
-<!--
-Home Bar Website – HTML shell only
-=================================
-JavaScript moved out to **bar.js** so you can keep markup and logic in separate
-files. Drop **index.html** and **bar.js** into the same folder (GitHub Pages or
-local server) together with your **images/** directory.
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,9 +16,10 @@ local server) together with your **images/** directory.
 </head>
 <body>
   <div id="app">Loading …</div>
+
   <!-- CSV parser library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- All calculation & rendering logic -->
+  <!-- Main logic (calculations + rendering) -->
   <script src="bar.js"></script>
 </body>
 </html>
