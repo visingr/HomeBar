@@ -85,8 +85,8 @@
 
       // recipes & descriptions
       const names = Object.keys(recRaw[0]).filter(k=>k!=='Name'&&k&&!k.startsWith('_')&&!/^Unnamed/i.test(k));
-      const descRowCs = recRaw[998]||{};
-      const descRowEn = recRaw[999]||{};
+      const descRowCs = recRaw[997]||{};
+      const descRowEn = recRaw[998]||{};
       const drinks = {};
       recRaw.forEach((r,i)=>{
         if(i<1 || i>=998) return; // skip header & description rows
