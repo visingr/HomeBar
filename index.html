@@ -1,37 +1,27 @@
 <!--
-Home Bar Website – single-page static site
-========================================
-Copy this file as **index.html** into a GitHub Pages repo together with an **images/** folder that holds one photo per cocktail.
-Photo file name should be a *slug* of the drink name, e.g.  “Whiskey Sour” → `whiskey_sour.jpg`.
+Home Bar Website – autorefreshing single‑page site
+==================================================
+Put this file into your GitHub Pages repo (or any static host) as **index.html**.  
+Photos live in **images/** – one JPG per drink, file name is a slug of the drink name
+(e.g. "Whiskey Sour" → `whiskey_sour.jpg`).
 
-🔧  Requirements
---------------------------------------------------
-* Your Google Sheet must be shared "Anyone with the link can *view*".
-* Keep the sheet tab names **Inventory** and **DrinkList** exactly as in the Python script.
-* No build-tool or server required – everything runs in the browser.
+New in this version
+-------------------
+* **Live refresh every 5 minutes.** The browser refetches the Google Sheet and
+  re‑renders (list or detail view) without a full page reload.
+* **Robust number parsing** – handles European decimals (comma), trailing "%",
+  and ignores stray “_1”, “Unnamed” columns.
+* Inline error message if anything goes wrong.
 
-⚠️  Opening via *file://*?
---------------------------------------------------
-Chrome / Edge / Firefox treat local *file://* pages as a **null origin**. Any
-`fetch('https://…')` request then fails the CORS check and you’ll see
-“Load failed / Failed to fetch”.
-Serve the file through a local server instead – for example:
+⚠️  Local testing reminder
+--------------------------
+Opening via *file://* trips CORS in modern browsers – run a tiny dev server:
 
 ```bash
-python -m http.server 8000
-# → http://localhost:8000/index.html
+python -m http.server 8000   # → http://localhost:8000/index.html
 ```
-…or simply push it to GitHub Pages.
 
-How it works
---------------------------------------------------
-1.  Two CSV endpoints of the sheet are fetched via *fetch*.
-2.  [Papa Parse](https://www.papaparse.com/) turns the CSV into objects.
-3.  The same aggregation logic as your Python script runs in-browser to
-    calculate drink volume, ABV %, and price.
-4.  Without a query-string the page shows the drink list; with `?drink=NAME`
-    it renders the detail view for that cocktail.
-5.  Styling is lightweight vanilla CSS; swap in Tailwind later if you like.
+Or push to GitHub Pages and view over HTTPS.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -45,44 +35,61 @@ How it works
       --accent:#007bff;
       --border:#d0d0d0;
       --bg-head:#f4f4f4;
+      --err:#c00;
     }
     body{font-family:system-ui, sans-serif; margin:1.5rem; line-height:1.5;}
     h1{margin-top:0; font-size:1.8rem;}
     a{color:var(--accent); text-decoration:none;}
     a:hover{text-decoration:underline;}
     table{border-collapse:collapse; width:100%; margin-top:1rem;}
-    th,td{border:1px solid var(--border); padding:0.45rem 0.6rem; text-align:left;}
+    th,td{border:1px solid var(--border); padding:0.45rem 0.6rem; text-align:left; vertical-align:top;}
     th{background:var(--bg-head);}
     img{max-width:320px; height:auto; display:block; margin:1rem 0; border-radius:0.5rem; box-shadow:0 4px 8px rgba(0,0,0,0.08);}
     .back{display:inline-block; margin-bottom:1rem; font-size:0.9rem;}
-    .err{color:#c00; max-width:600px;}
+    .err{color:var(--err); max-width:600px;}
   </style>
 </head>
 <body>
   <div id="app">Loading …</div>
 
-  <!-- 1️⃣  CSV-parser library -->
+  <!-- CSV‑parser library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <!-- 2️⃣  Main application code -->
   <script>
-  /* ===== CONFIG ======================================================== */
+  /*******************************************************************
+   * CONFIG & HELPERS
+   *******************************************************************/
   const SHEET_ID = '1Vi7W4YksMjIfuO5sqtzIZJwOTClXsG8GXg6rHBczOwI';
   const SHEETS   = { INVENTORY:'Inventory', RECIPES:'DrinkList' };
   const CURRENCY = '€';
+  const REFRESH_MS = 5 * 60 * 1000;   // 5 minutes
 
-  /* =====  UTILITIES  =================================================== */
+  /** Build CSV download URL for the given tab */
   const csvUrl = sheet =>
     `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
 
-  const slug = str => str.toLowerCase().replace(/\s+/g,'_').replace(/[^\w\-]/g,'');
+  /** Slugify string for photo file name */
+  const slug = str => str
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents
+      .replace(/\s+/g,'_')
+      .replace(/[^\w\-]/g,'');
 
-  /* =====  DATA LAYER  ================================================== */
+  /** Coerce text/number with EU decimals or trailing % into JS number */
+  const toNum = value => {
+    if (typeof value === 'number') return value;
+    if (!value) return 0;
+    return parseFloat(String(value).replace('%','').replace(',','.')) || 0;
+  };
+
+  /*******************************************************************
+   * DATA LAYER
+   *******************************************************************/
   async function fetchCsv(sheetName){
     const resp = await fetch(csvUrl(sheetName));
-    if(!resp.ok) throw new Error(`Cannot load sheet “${sheetName}” (status ${resp.status})`);
+    if(!resp.ok) throw new Error(`Cannot load sheet “${sheetName}” (status ${resp.status})`);
     const text = await resp.text();
-    return Papa.parse(text.trim(), {header:true, dynamicTyping:true}).data;
+    return Papa.parse(text.trim(), {header:true}).data;  // keep raw strings
   }
 
   async function loadBarData(){
@@ -91,49 +98,50 @@ How it works
       fetchCsv(SHEETS.RECIPES)
     ]);
 
-    // Normalise inventory
+    /* Inventory: name, abv (0–1), price per ml */
     const inventory = invRaw.map(r => ({
       name      : r.Name,
-      abv       : r.Alkohol,             // numeric via Papa Parse
-      pricePerMl: r['Cena/L'] / 1000     // €/L → €/ml
+      abv       : toNum(r.Alkohol) / (String(r.Alkohol).includes('%') ? 100 : 1),
+      pricePerMl: toNum(r['Cena/L']) / 1000
     }));
 
-    // Build drink objects from wide recipe table
-    const drinkNames = Object.keys(recRaw[0]).filter(k => k !== 'Name');
-    const drinks = Object.fromEntries(drinkNames.map(n => [n, {
-      name       : n,
-      volumeMl   : 0,
-      alcPercent : 0,
-      price      : 0,
-      parts      : []   // {ingredient, ml, abv}
+    /* Drinks list: columns = drink names, rows = ingredients+ml */
+    const drinkNames = Object.keys(recRaw[0])
+      .filter(k => k !== 'Name' && k && !k.startsWith('_') && !k.match(/^Unnamed/i));
+
+    const drinks = Object.fromEntries(drinkNames.map(name => [name, {
+      name, volumeMl:0, alcPercent:0, price:0, parts:[]
     }]));
 
     recRaw.forEach(row => {
       const ingredient = row.Name;
+      if(!ingredient) return;  // skip blank rows
       drinkNames.forEach(drinkName => {
-        const ml = row[drinkName] || 0;
+        const ml = toNum(row[drinkName]);
         if(ml > 0){
           const inv = inventory.find(i => i.name === ingredient) || {abv:0, pricePerMl:0};
           const d   = drinks[drinkName];
-
           d.volumeMl += ml;
           d.price    += ml * inv.pricePerMl;
-          d.parts.push({ingredient, ml, abv:inv.abv});
+          d.parts.push({ingredient, ml, abv:inv.abv*100});
         }
       });
     });
 
-    // Finalise calcs
-    Object.values(drinks).forEach(d => {
-      const alcMl = d.parts.reduce((sum,p) => sum + p.ml * p.abv, 0);
-      d.alcPercent = d.volumeMl ? (alcMl / d.volumeMl) : 0;
+    /* Calculate %ABV and round figures */
+    for(const d of Object.values(drinks)){
+      const alcMl = d.parts.reduce((s,p) => s + p.ml * (p.abv/100), 0);
+      d.alcPercent = d.volumeMl ? +(alcMl / d.volumeMl * 100).toFixed(2) : 0;
       d.price      = +d.price.toFixed(2);
-      d.alcPercent = +d.alcPercent.toFixed(2);
-    });
+      d.volumeMl   = +d.volumeMl.toFixed(0);
+    }
+
     return drinks;
   }
 
-  /* =====  UI RENDERING  =============================================== */
+  /*******************************************************************
+   * UI – list & detail renderers
+   *******************************************************************/
   function renderList(drinks){
     const app = document.getElementById('app');
     app.innerHTML = '<h1>Drinks</h1>';
@@ -141,7 +149,6 @@ How it works
     const tbl = document.createElement('table');
     tbl.innerHTML = '<thead><tr><th>Drink</th><th>Price</th></tr></thead>';
     const tbody = document.createElement('tbody');
-
     Object.values(drinks).forEach(d => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td>`+
@@ -157,23 +164,20 @@ How it works
     app.innerHTML = `<a class="back" href="./">← Back to list</a>`+
                     `<h1>${drink.name}</h1>`;
 
-    // photo (optional)
     const img = document.createElement('img');
     img.src = `images/${slug(drink.name)}.jpg`;
     img.alt = drink.name;
     img.onerror = () => img.remove();
     app.appendChild(img);
 
-    // quick facts
     const facts = document.createElement('p');
-    facts.innerHTML = `Volume: <strong>${drink.volumeMl} ml</strong><br>`+
-                      `Alcohol: <strong>${drink.alcPercent}% ABV</strong><br>`+
+    facts.innerHTML = `Volume: <strong>${drink.volumeMl} ml</strong><br>`+
+                      `Alcohol: <strong>${drink.alcPercent}% ABV</strong><br>`+
                       `Price: <strong>${CURRENCY}${drink.price.toFixed(2)}</strong>`;
     app.appendChild(facts);
 
-    // parts table
     const tbl = document.createElement('table');
-    tbl.innerHTML = '<thead><tr><th>Ingredient</th><th>ml</th><th>ABV %</th></tr></thead>';
+    tbl.innerHTML = '<thead><tr><th>Ingredient</th><th>ml</th><th>ABV %</th></tr></thead>';
     const tbody = document.createElement('tbody');
     drink.parts.forEach(p => {
       const tr = document.createElement('tr');
@@ -183,14 +187,15 @@ How it works
     tbl.appendChild(tbody);
     app.appendChild(tbl);
 
-    // description placeholder
     const desc = document.createElement('p');
     desc.innerText = 'Description coming soon…';
     app.appendChild(desc);
   }
 
-  /* =====  BOOTSTRAP  =================================================== */
-  (async () => {
+  /*******************************************************************
+   * BOOTSTRAP & AUTO‑REFRESH
+   *******************************************************************/
+  async function render(){
     try{
       const drinks = await loadBarData();
       const qsDrink = new URLSearchParams(location.search).get('drink');
@@ -199,11 +204,13 @@ How it works
       else
         renderList(drinks);
     }catch(err){
-      const app = document.getElementById('app');
-      app.innerHTML = `<p class="err">${err.message}<br><small>If you're viewing this via <code>file://</code>, try serving it through a local web-server or push to GitHub Pages.</small></p>`;
+      document.getElementById('app').innerHTML = `<p class="err">${err.message}</p>`;
       console.error(err);
     }
-  })();
+  }
+
+  render();                    // first load
+  setInterval(render, REFRESH_MS);   // auto‑refresh every 5 min
   </script>
 </body>
 </html>
