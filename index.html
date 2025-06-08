@@ -110,7 +110,7 @@
       app.innerHTML = '<h1>Drinks</h1>';
 
       const tbl = document.createElement('table');
-      tbl.innerHTML = '<thead><tr><th>Drink</th><th>Availability</th><th>Price</th></tr></thead>';
+      tbl.innerHTML = '<thead><tr><th>Drink</th><th style="text-align:center; width:1%">Availability</th><th>Price</th></tr></thead>';
       const tbody = document.createElement('tbody');
       drinks.forEach(d => {
         const tr = document.createElement('tr');
@@ -123,7 +123,7 @@
       if (shots.length) {
         app.insertAdjacentHTML('beforeend', '<h2>Shots</h2>');
         const sTbl = document.createElement('table');
-        sTbl.innerHTML = '<thead><tr><th>Shot (40 ml)</th><th>Availability</th><th>Price</th></tr></thead>';
+        sTbl.innerHTML = '<thead><tr><th>Shot (40 ml)</th><th style="text-align:center; width:1%">Availability</th><th>Price</th></tr></thead>';
         const sBody = document.createElement('tbody');
         shots.forEach(s => {
         const tr = document.createElement('tr');
