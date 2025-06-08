@@ -107,7 +107,7 @@
     }
 
     /* RENDER */
-    const dot = ok => `<span class="status ${ok ? 'ok' : 'no'}"></span>`;
+    const dot = ok => `<span class="status ${ok ? 'ok' : 'no'}" title="${ok ? 'Available' : 'Not available'}"></span>`;
     const statusDot = d => `<span class="status ${d.available ? 'ok' : 'no'}" title="${d.available ? 'All ingredients in stock' : 'Missing: ' + d.missing.join(', ')}"></span>`;
 
     function renderList(drinks, shots) {
@@ -153,7 +153,7 @@
       app.innerHTML = `
         <div class="back"><a href="?">← All Drinks</a></div>
         <h1>${d.name}</h1>
-        <p>${statusDot(d)} ${d.available ? 'Available' : 'Not available'}</p>
+        <p>${statusDot(d)} ${d.available ? '<strong>Available</strong>' : '<strong>Not available</strong>'}</p>
         <p>Volume: ${d.volumeMl} ml</p>
         <p>ABV: ${d.alcPercent}%</p>
         <p>Price: ${CURRENCY}${d.price.toFixed(2)}</p>
