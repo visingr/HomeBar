@@ -1,15 +1,15 @@
 <!--
 Home Bar Website – autorefreshing single‑page site
 ==================================================
-**Version 5 – prices fixed**
+**Version 6 – inventory rows kept even without price**
 
-* **Robust number parser** now strips currency symbols (€, Kč, etc.), spaces
-  and thin‑spaces before converting, so price cells like “€12,50” or “890 CZK”
-  no longer evaluate to zero.
-* ABV handling tweaked: if the numeric value is > 1 we treat it as percent and
-  divide by 100.
-* Cocktail prices and 40 ml shot prices now show correctly.
--->
+* Removes the `pricePerMl > 0` filter so every ingredient in **Inventory** is
+  available for recipes even if its price cell is blank. This restores the full
+  drink list when some bottles don’t have a cost yet.
+* Shot prices default to €0.00 if no price is entered.
+* Adds a small warning paragraph if no drinks are generated (helps diagnose
+  empty lists in future).
+*/
 <!DOCTYPE html>
 <html lang="en">
 <head>
