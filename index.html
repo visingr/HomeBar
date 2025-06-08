@@ -123,11 +123,12 @@
       if (shots.length) {
         app.insertAdjacentHTML('beforeend', '<h2>Shots</h2>');
         const sTbl = document.createElement('table');
-        sTbl.innerHTML = '<thead><tr><th>Shot (40 ml)</th><th>Price</th></tr></thead>';
+        sTbl.innerHTML = '<thead><tr><th>Shot (40 ml)</th><th>Availability</th><th>Price</th></tr></thead>';
         const sBody = document.createElement('tbody');
         shots.forEach(s => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${s.name}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+        const tr = document.createElement('tr');
+        const available = true;
+        tr.innerHTML = `<td>${s.name}</td><td style="text-align:center"><span class="status ok" title="Always available (single ingredient)"></span></td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
           sBody.appendChild(tr);
         });
         sTbl.appendChild(sBody);
