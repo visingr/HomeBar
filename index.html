@@ -57,26 +57,28 @@
     // detect column names
     const detect = (row, rx) => Object.keys(row).find(k=>rx.test(k));
     const stockKey = detect(invRaw[0], /(stock|have|available|skladem)/i);
-    const abvKey   = detect(invRaw[0], /(alkohol|abv)/i)       || 'Alkohol';
-    const priceKey = detect(invRaw[0], /(cena.*\/l|price.*\/l)/i) || 'Cena/L';
+    const abvKey   = detect(invRaw[0], /(cena.*\/l|price.*\/l)/i)   || 'Cena/L'; // swap ordering
+    const priceKey = detect(invRaw[0], /(alkohol|abv)/i)            || 'Alkohol';
 
-    // build inventory with slug keys
-    const inventory = invRaw.filter(r=>r.Name).map(r=>{
+    // build inventory map by exact Name
+    const inventory = invRaw.filter(r=>r.Name).map(r => {
       const name   = r.Name.trim();
-      const abvRaw = toNum(r[abvKey]);
-      const abv    = abvRaw>1 ? abvRaw/100 : abvRaw;
-      const priceL = toNum(r[priceKey]);
+      const priceL = toNum(r[abvKey]);
+      const abvRaw = toNum(r[priceKey]);
+      // note: swap keys for price and abv based on header names
+      const pricePerMl = priceL / 1000;
+      const abv       = abvRaw > 1 ? abvRaw/100 : abvRaw;
       return {
         name,
-        key: slug(name),
         abv,
-        pricePerMl: priceL/1000,
+        pricePerMl,
         inStock: stockKey ? toBool(r[stockKey]) : true
       };
     });
-    const invMap = Object.fromEntries(inventory.map(i=>[i.key,i]));
+    // map by name
+    const invMap = Object.fromEntries(inventory.map(i=>[i.name,i]));
 
-    // shots list
+    // build shots list
     const shots = inventory
       .filter(i=>i.abv>0.05)
       .map(i=>({ name:i.name, price:+(i.pricePerMl*SHOT_ML).toFixed(2), available:i.inStock }))
@@ -89,33 +91,27 @@
 
     recRaw.forEach(row=>{
       const rawIng = row.Name && row.Name.trim();
-      const ingKey = slug(rawIng);
-      if(!rawIng || !invMap[ingKey]) return; // skip unknown
-      const inv = invMap[ingKey];
+      if(!rawIng || !invMap[rawIng]) return; // skip unknown
+      const inv = invMap[rawIng];
 
-      drinkNames.forEach(dn=>{
+      drinkNames.forEach(dn => {
         const ml = toNum(row[dn]);
-        if(ml<=0) return;
-        const d = drinks[dn] ??= {
-          name: dn,
-          volumeMl: 0,
-          alcSum: 0,
-          price: 0,
-          available: true,
-          missing: [],
-          parts: []
-        };
+        if(ml <= 0) return;
+        const d = drinks[dn] ??= { name: dn, volumeMl: 0, alcSum: 0, price: 0, available: true, missing: [], parts: [] };
         d.volumeMl += ml;
         d.price    += ml * inv.pricePerMl;
         d.alcSum   += ml * inv.abv;
         d.parts.push({ ingredient: inv.name, ml, abv: +(inv.abv*100).toFixed(1), inStock: inv.inStock });
-        if(!inv.inStock){ d.available = false; if(!d.missing.includes(inv.name)) d.missing.push(inv.name); }
+        if(!inv.inStock){
+          d.available = false;
+          if(!d.missing.includes(inv.name)) d.missing.push(inv.name);
+        }
       });
     });
 
-    // finalize ABV % and rounding
+    // finalize ABV % and roundings
     Object.values(drinks).forEach(d=>{
-      d.alcPercent = d.volumeMl ? +(d.alcSum / d.volumeMl * 100).toFixed(2) : 0;
+      d.alcPercent = d.volumeMl ? +(d.alcSum/d.volumeMl*100).toFixed(2) : 0;
       d.price      = +d.price.toFixed(2);
       d.volumeMl   = +d.volumeMl.toFixed(0);
     });
@@ -124,8 +120,8 @@
   }
 
   /* RENDER HELPERS */
-  const dot = avail => `<span class="status ${avail?'ok':'no'}"></span>`;
-  const statusDot = d => `<span class="status ${d.available?'ok':'no'}" title="${d.available?'All ingredients in stock':'Missing: '+d.missing.join(', ')}"></span>`;
+  const dot = avail=>`<span class="status ${avail?'ok':'no'}"></span>`;
+  const statusDot = d=>`<span class="status ${d.available?'ok':'no'}" title="${d.available?'All ingredients in stock':'Missing: '+d.missing.join(', ')}"></span>`;
 
   /* LIST VIEW */
   function renderList(drinksMap, shots){
@@ -138,10 +134,7 @@
     const tb = document.createElement('tbody');
     drinks.forEach(d=>{
       const tr = document.createElement('tr');
-      tr.innerHTML =
-        `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td>`+
-        `<td style="text-align:center">${statusDot(d)}</td>`+
-        `<td>${CURRENCY}${d.price.toFixed(2)}</td>`;
+      tr.innerHTML = `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
       tb.appendChild(tr);
     });
     tbl.appendChild(tb); app.appendChild(tbl);
@@ -153,10 +146,7 @@
       const sb = document.createElement('tbody');
       shots.forEach(s=>{
         const tr = document.createElement('tr');
-        tr.innerHTML =
-          `<td>${s.name}</td>`+
-          `<td style="text-align:center">${dot(s.available)}</td>`+
-          `<td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+        tr.innerHTML = `<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
         sb.appendChild(tr);
       });
       sTbl.appendChild(sb); app.appendChild(sTbl);
@@ -214,10 +204,3 @@
       document.getElementById('app').innerHTML = `<p class=\"err\">${e.message}</p>`;
       console.error(e);
     }
-  }
-
-  render();
-  setInterval(render, REFRESH_MS);
-  </script>
-</body>
-</html>
