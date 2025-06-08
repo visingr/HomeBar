@@ -1,18 +1,13 @@
 <!--
 Home Bar Website – autorefreshing single‑page site
 ==================================================
-**Version 3 – trims empty ghost drinks**
+**Version 4 – adds a “Shots” section**
 
-* Filters out any drink whose calculated volume = 0 ml → no more “_1”, “0 ml”,
-  or orphan numeric rows in the list.
-* Ignores recipe rows that aren’t present in **Inventory** – so a stray “50 ml”
-  row or blank Name cell can’t pollute the output.
-* Still auto‑refreshes every 5 minutes and handles EU decimals, % signs, etc.
-
-Install
--------
-Replace your existing **index.html** with this file, push to GitHub Pages or
-serve locally (`python -m http.server`), and refresh.
+* Under the main cocktail list a new **Shots** heading appears, showing every
+  ingredient whose ABV > 5 % as a 40 ml shot with its price.
+* Shots are priced on‑the‑fly from *Inventory* (`pricePerMl × 40` → rounded to
+  two decimals).
+* Everything still auto‑refreshes every 5 minutes.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -23,7 +18,7 @@ serve locally (`python -m http.server`), and refresh.
   <style>
     :root{--accent:#007bff; --border:#d0d0d0; --bg-head:#f4f4f4; --err:#c00;}
     body{font-family:system-ui,sans-serif;margin:1.5rem;line-height:1.5;}
-    h1{margin-top:0;font-size:1.8rem;}
+    h1,h2{margin-top:1.5rem;font-size:1.8rem;}h2{font-size:1.4rem;}
     a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}
     table{border-collapse:collapse;width:100%;margin-top:1rem;}
     th,td{border:1px solid var(--border);padding:0.45rem 0.6rem;text-align:left;vertical-align:top;}
@@ -39,6 +34,7 @@ serve locally (`python -m http.server`), and refresh.
   const SHEETS   = { INVENTORY:'Inventory', RECIPES:'DrinkList' };
   const CURRENCY = '€';
   const REFRESH_MS = 5*60*1000;   // 5 min
+  const SHOT_ML = 40;
 
   const csvUrl = sheet =>
     `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
@@ -67,9 +63,16 @@ serve locally (`python -m http.server`), and refresh.
       name:r.Name,
       abv: toNum(r.Alkohol)/(String(r.Alkohol).includes('%')?100:1),
       pricePerMl: toNum(r['Cena/L'])/1000
-    }));
-    const ingSet = new Set(inventory.map(i=>i.name));
+    })).filter(i=>i.name);   // drop blank lines
 
+    /* Build shots list */
+    const shots = inventory.filter(i=>i.abv>0.05).map(i=>({
+      name:i.name,
+      price:+(i.pricePerMl*SHOT_ML).toFixed(2)
+    })).sort((a,b)=>a.name.localeCompare(b.name));
+
+    /* Build drinks list */
+    const ingSet = new Set(inventory.map(i=>i.name));
     const drinkNames = Object.keys(recRaw[0]).filter(k=>k!=='Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
     const drinks = Object.fromEntries(drinkNames.map(n=>[n,{name:n,volumeMl:0,alcPercent:0,price:0,parts:[]}]));
 
@@ -88,7 +91,6 @@ serve locally (`python -m http.server`), and refresh.
       });
     });
 
-    // finalise + prune empties
     for(const [name,d] of Object.entries(drinks)){
       if(d.volumeMl===0){ delete drinks[name]; continue; }
       const alcMl=d.parts.reduce((s,p)=>s+p.ml*(p.abv/100),0);
@@ -96,13 +98,16 @@ serve locally (`python -m http.server`), and refresh.
       d.price=+d.price.toFixed(2);
       d.volumeMl=+d.volumeMl.toFixed(0);
     }
-    return drinks;
+
+    return {drinks, shots};
   }
 
   /* UI */
-  function renderList(drinks){
+  function renderList(drinks, shots){
     const app=document.getElementById('app');
     app.innerHTML='<h1>Drinks</h1>';
+
+    // drinks table
     const tbl=document.createElement('table');
     tbl.innerHTML='<thead><tr><th>Drink</th><th>Price</th></tr></thead>';
     const tbody=document.createElement('tbody');
@@ -112,6 +117,20 @@ serve locally (`python -m http.server`), and refresh.
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody); app.appendChild(tbl);
+
+    // shots heading + table
+    if(shots.length){
+      app.insertAdjacentHTML('beforeend','<h2>Shots</h2>');
+      const sTbl=document.createElement('table');
+      sTbl.innerHTML='<thead><tr><th>Shot (40 ml)</th><th>Price</th></tr></thead>';
+      const sBody=document.createElement('tbody');
+      shots.forEach(s=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${s.name}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+        sBody.appendChild(tr);
+      });
+      sTbl.appendChild(sBody); app.appendChild(sTbl);
+    }
   }
 
   function renderDetail(d){
@@ -126,9 +145,9 @@ serve locally (`python -m http.server`), and refresh.
   /* BOOTSTRAP */
   async function render(){
     try{
-      const drinks=await loadBarData();
+      const {drinks, shots} = await loadBarData();
       const qs=new URLSearchParams(location.search).get('drink');
-      if(qs && drinks[qs]) renderDetail(drinks[qs]); else renderList(drinks);
+      if(qs && drinks[qs]) renderDetail(drinks[qs]); else renderList(drinks, shots);
     }catch(e){ document.getElementById('app').innerHTML=`<p class="err">${e.message}</p>`; console.error(e); }
   }
   render(); setInterval(render,REFRESH_MS);
