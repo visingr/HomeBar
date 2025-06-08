@@ -62,8 +62,10 @@
 
     async function loadBarData(){
       const [invText, recText] = await Promise.all([
-        fetch(csvUrl(SHEETS.INVENTORY)).then(r=>r.ok?r.text():Promise.reject(r.status)),
-        fetch(csvUrl(SHEETS.RECIPES)).then(r=>r.ok?r.text():Promise.reject(r.status))
+        fetch(csvUrl(SHEETS.INVENTORY) + `&t=${Date.now()}`, { cache: 'no-store' })
+          .then(r => r.ok ? r.text() : Promise.reject(r.status)),
+        fetch(csvUrl(SHEETS.RECIPES) + `&t=${Date.now()}`, { cache: 'no-store' })
+          .then(r => r.ok ? r.text() : Promise.reject(r.status))
       ]);
       const invRaw = Papa.parse(invText.trim(),{header:true}).data;
       const recRaw = Papa.parse(recText.trim(),{header:true}).data;
