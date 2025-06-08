@@ -63,7 +63,7 @@
 
   function renderList(drinks,shots){
     const app=document.getElementById('app');app.innerHTML='<h1>Drinks</h1>';
-    const t=document.createElement('table');t.innerHTML='<thead><tr><th>Drink</th><th style="text-align:center">Avail</th><th>Price</th></tr></thead>';
+    const t=document.createElement('table');t.innerHTML='<thead><tr><th>Drink</th><th style="text-align:center">Availability</th><th>Price</th></tr></thead>';
     const b=document.createElement('tbody');Object.values(drinks).sort((a,b)=>a.name.localeCompare(b.name)).forEach(d=>{const r=document.createElement('tr');r.innerHTML=`<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;b.appendChild(r);});t.appendChild(b);app.appendChild(t);
     if(shots.length){app.insertAdjacentHTML('beforeend','<h2>Shots (40 ml)</h2>');const st=document.createElement('table');st.innerHTML='<thead><tr><th>Shot</th><th style="text-align:center">Avail</th><th>Price</th></tr></thead>';const sb=document.createElement('tbody');shots.forEach(s=>{const r=document.createElement('tr');r.innerHTML=`<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;sb.appendChild(r);});st.appendChild(sb);app.appendChild(st);}  }
 
