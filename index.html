@@ -88,7 +88,7 @@
         d.vol += r.Ml;
         d.price += r.Ml * inv.pricePerMl;
         d.alcPct += r.Ml * inv.abv;
-        if (!inv.inStock) {
+        if (!inv.inStock && !d.missing.includes(inv.label)) {
           d.available = false;
           d.missing.push(inv.label);
         }
