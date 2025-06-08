@@ -1,314 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Home Bar</title>
-  <style>
-    :root{
-      --accent:#007bff;--border:#d0d0d0;--bg-head:#f4f4f4;--err:#c00;
-    }
-    body{font-family:system-ui,sans-serif;margin:1.5rem;line-height:1.55;}
-    h1,h2{margin-top:1.6rem;font-size:1.9rem;}h2{font-size:1.45rem;}
-    a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}
-    table{border-collapse:collapse;width:100%;margin-top:1rem;}
-    th,td{border:1px solid var(--border);padding:0.55rem 0.7rem;text-align:left;vertical-align:top;}
-    th{background:var(--bg-head);} 
-    img.cocktail{width:100%;max-width:512px;height:auto;border-radius:0.55rem;box-shadow:0 4px 8px rgba(0,0,0,0.08);margin:1rem 0;}
-    .back{display:inline-block;margin-bottom:1.1rem;font-size:0.9rem;}
-    .err{color:var(--err);max-width:600px;}
-    .status{display:inline-block;width:0.85rem;height:0.85rem;border-radius:50%;vertical-align:middle;margin-right:0.45rem;}
-    .status.ok{background:#28a745;}.status.no{background:#dc3545;}
-    #lang-switch{position:fixed;top:0.6rem;right:0.6rem;z-index:10;}
-    #lang-switch select{padding:0.2rem 0.4rem;border:1px solid var(--border);border-radius:0.3rem;background:#fff;font-size:0.9rem;}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar Drinks</title>
+<style>
+:root{
+  --accent:#037bfa;
+  --bg:#fafafa;
+  --border:#d7d7d7;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui, sans-serif;background:var(--bg);color:#222;}
+header{display:flex;justify-content:space-between;align-items:center;padding:1rem;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:2;}
+h1{font-size:1.4rem;margin:0;}
+#langSel{font-size:.9rem;padding:.3rem .5rem;}
+main{padding:1rem;max-width:900px;margin:auto;}
+.drink-list{display:grid;gap:1rem;}
+.drink-card{padding:1rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;transition:box-shadow .2s}
+.drink-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.1);}
+.avail{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.4em;vertical-align:middle;}
+.avail.y{background:#0a0;}
+.avail.n{background:#c00;}
+.detail{display:none;}
+.detail.active{display:block;}
+.detail img{width:100%;max-width:512px;margin:.5rem 0;border-radius:8px;}
+table{width:100%;border-collapse:collapse;margin:.5rem 0;}
+th,td{border:1px solid var(--border);padding:.4rem;text-align:left;font-size:.9rem;}
+th{background:var(--bg);}
+.bold{font-weight:600;}
+.hidden{display:none;}
+</style>
 </head>
 <body>
-  <!-- language picker -->
-  <div id="lang-switch"><select id="lang-select" aria-label="Language switch">
-    <option value="en">EN</option>
-    <option value="cs">CZ</option>
-  </select></div>
+<header>
+  <h1 id="appTitle"></h1>
+  <select id="langSel"></select>
+</header>
+<main>
+  <section id="listSection">
+    <div class="drink-list" id="drinkList"></div>
+  </section>
+  <section id="detailSection" class="detail"></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+(function(){
+/* ------------------ CONFIG -------------------- */
+const SHEET_ID = 'YOUR_SHEET_ID_HERE';    // <-- put your google sheet id here
+const SHEET_NAME = 'DrinkList';
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+const IMAGE_DIR = 'Drink/';               // relative folder with images
 
-  <div id="app">Loading …</div>
+/* ------------- TRANSLATION DICT -------------- */
+const dict = {
+  en:{
+    title:'Our Drinks',
+    available:'Available',
+    unavailable:'Missing ingredients',
+    volume:'Volume',
+    abv:'ABV',
+    price:'Price',
+    ingredient:'Ingredient',
+    amount_ml:'ml',
+    abv_short:'%',
+    in_stock:'In stock',
+    popis:'Description',
+    back:'← Back',
+    currency:'€'
+  },
+  cs:{
+    title:'Naše drinky',
+    available:'Dostupný',
+    unavailable:'Chybí ingredience',
+    volume:'Objem',
+    abv:'Obsah alkoholu',
+    price:'Cena',
+    ingredient:'Ingredience',
+    amount_ml:'ml',
+    abv_short:'%',
+    in_stock:'Skladem',
+    popis:'Popis',
+    back:'← Zpět',
+    currency:'€'
+  }
+};
 
-  <!-- PapaParse for quick CSV → JS objects -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script>
-    /* ===========================
-       Configuration & Constants
-    ============================*/
-    const SHEET_ID   = '1Vi7W4YksMjIfuO5sqtzIZJwOTClXsG8GXg6rHBczOwI';
-    const SHEETS     = { INVENTORY:'Inventory', RECIPES:'DrinkList' };
-    const CURRENCY   = '€';
-    const REFRESH_MS = 5*60*1000;  // auto‑refresh every 5 minutes
-    const SHOT_ML    = 40;
-
-    /* ===========================
-       Minimal i18n helper
-    ============================*/
-    const I18N = {
-      en:{
-        drinks:'Drinks',shotList:'Shots',shot:'Shot (40 ml)',drink:'Drink',availability:'Availability',price:'Price',volume:'Volume',alcohol:'Alcohol',ingredient:'Ingredient',ml:'ml',abv:'ABV %',inStock:'In stock',allInStock:'All ingredients in stock',missing:'Missing',available:'Available',unavailable:'Unavailable',back:'← Back to list',description:'Description'
-      },
-      cs:{
-        drinks:'Nápoje',shotList:'Panáky',shot:'Panák (40 ml)',drink:'Nápoj',availability:'Dostupnost',price:'Cena',volume:'Objem',alcohol:'Alkohol',ingredient:'Ingredience',ml:'ml',abv:'Obsah alkoholu %',inStock:'Skladem',allInStock:'Všechny ingredience skladem',missing:'Chybí',available:'Dostupný',unavailable:'Nedostupný',back:'← Zpět na seznam',description:'Popis'
-      }
-    };
-    function detectLang(){
-      return localStorage.getItem('lang')|| (navigator.language||'').toLowerCase().startsWith('cs')? 'cs':'en';
+/* -------------- STATE & LANG ----------------- */
+const langSel = document.getElementById('langSel');
+const appTitle = document.getElementById('appTitle');
+const listEl = document.getElementById('drinkList');
+const detailSec = document.getElementById('detailSection');
+let lang = localStorage.getItem('lang') ||
+           (navigator.language||'en').toLowerCase().startsWith('cs')?'cs':'en';
+function applyLangLabels(){
+  const tr = dict[lang];
+  appTitle.textContent = tr.title;
+  // build language select if empty
+  if(!langSel.options.length){
+    for(const k of Object.keys(dict)){
+      const o = document.createElement('option');
+      o.value=k; o.textContent=k.toUpperCase();
+      langSel.appendChild(o);
     }
-    let LANG = detectLang();
-    const $langSel = document.getElementById('lang-select');
-    $langSel.value = LANG;
-    $langSel.onchange = ()=>{ LANG=$langSel.value; localStorage.setItem('lang',LANG); render(); };
-    const t = k => (I18N[LANG]&&I18N[LANG][k])||k;
-
-    /* ===========================
-       Utility helpers
-    ============================*/
-    const csvUrl = sheet=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
-    const slug   = str=>str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'_').replace(/[^\w\-]/g,'');
-    const toNum  = v=>{ if(typeof v==='number')return v; if(!v) return 0; return parseFloat(String(v).replace(/%/g,'').replace(/,/g,'.'))||0;};
-    const toBool = v=>/^(y|yes|true|1)$/i.test(String(v).trim());
-
-    /* ===========================
-       Fetch helpers
-    ============================*/
-    async function fetchCsv(sheet){
-      const res = await fetch(csvUrl(sheet));
-      if(!res.ok) throw new Error(`Cannot load sheet “${sheet}” (${res.status})`);
-      return Papa.parse((await res.text()).trim(),{header:true}).data;
+  }
+  langSel.value=lang;
+  // update detail if visible
+  if(detailSec.classList.contains('active')){
+    const drinkId = detailSec.dataset.id;
+    showDetail(drinks.find(d=>d.id===drinkId));
+  }
+}
+langSel.addEventListener('change', e=>{
+  lang = e.target.value;
+  localStorage.setItem('lang',lang);
+  applyLangLabels();
+});
+/* -------------- DATA MODEL ------------------- */
+let drinks=[];
+/* Dummy fallback data so page works without sheet */
+const fallbackCSV = `
+Name,Volume,Price,Islandic Vodka ml,Islandic Vodka abv,Islandic Vodka price,Blue Curacao ml,Blue Curacao abv,Blue Curacao price,Lemonade ml,Lemonade abv,Lemonade price
+Blue Lagoon,180,,40,38,0.4,20,20,0.25,120,0,0.25
+`;
+/* parse CSV row into drink object */
+function rowToDrink(row, idx){
+  const name = row['Name'].trim();
+  if(idx===998||idx===999){ // descriptions rows
+    return null;
+  }
+  const ingr = [];
+  Object.keys(row).forEach(k=>{
+    if(k.includes(' ml')){
+      const base = k.replace(/ ml$/,'');
+      const ml=parseFloat(row[k]||0);
+      if(!ml) return;
+      const abv=parseFloat(row[base+' abv']||0);
+      const cost=parseFloat(row[base+' price']||0);
+      const in_stock=!(row[base+' stock']||'').toLowerCase().includes('no');
+      const title=base;
+      ingr.push({title,ml,abv,cost,in_stock});
     }
-
-    /* ===========================
-       Core: Load & Process data
-    ============================*/
-    async function loadBarData(){
-      const [invRaw,recRaw] = await Promise.all([fetchCsv(SHEETS.INVENTORY),fetchCsv(SHEETS.RECIPES)]);
-      if(!invRaw.length) throw new Error('Inventory sheet empty');
-      if(!recRaw.length) throw new Error('Recipes sheet empty');
-
-      // ---- detect useful column names in Inventory sheet (flexible headers) ----
-      const detect = (row,rx)=>Object.keys(row).find(k=>rx.test(k));
-      const stockKey = detect(invRaw[0],/(Skladem|stock|have|available)/i);
-      const priceKey = detect(invRaw[0],/(Cena.*\/L|price.*\/l)/i) || 'Cena/L';
-      const abvKey   = detect(invRaw[0],/(Alkohol|abv)/i) || 'Alkohol';
-
-      // ---- build Inventory index ----
-      const inventory = invRaw.filter(r=>r.Name).map(r=>{
-        const name = r.Name.trim();
-        const key  = slug(name);
-        const pricePerMl = toNum(r[priceKey]) / 1000; // convert €/L → €/ml
-        const abvRaw = toNum(r[abvKey]);
-        const abv    = abvRaw>1? abvRaw/100 : abvRaw; // allow “40” or “0.4”
-        return {name,key,pricePerMl,abv,inStock:stockKey?toBool(r[stockKey]):true};
-      });
-      const invMap = Object.fromEntries(inventory.map(i=>[i.key,i]));
-
-      // helper to find inventory even with slight‑name mismatch (fixes “Absolut” bug)
-      function findInv(name){
-        const k = slug(name);
-        if(invMap[k]) return invMap[k];
-        return inventory.find(it=>it.name.toLowerCase().includes(name.toLowerCase())||name.toLowerCase().includes(it.name.toLowerCase()));
-      }
-
-      /* ---- gather Descriptions rows (row.Name starting _desc_en / _desc_cs) ---- */
-      const descRows = recRaw.filter(r=>/^_?desc_/i.test(r.Name||''));
-      const descriptions = {en:{},cs:{}};
-      descRows.forEach(r=>{
-        const isCz = /cs|cz/i.test(r.Name);
-        const lang = isCz? 'cs':'en';
-        Object.keys(r).forEach(col=>{
-          if(col==='Name' || !r[col]) return;
-          descriptions[lang][col.trim()] = r[col].trim();
+  });
+  // calculate totals
+  let volume=0, alcMl=0, cost=0;
+  ingr.forEach(ing=>{
+    volume+=ing.ml;
+    alcMl+=ing.ml*ing.abv/100;
+    cost+=ing.cost;
+  });
+  const abv = volume? (alcMl/volume*100):0;
+  // detect availability
+  const available = ingr.every(ing=>ing.in_stock);
+  // pick image path
+  const imgCandidate = name;
+  const exts=['.jpg','.jpeg','.png','.jxl','.JPG','.JPEG','.PNG','.JXL'];
+  const img=exts.map(ext=>IMAGE_DIR+imgCandidate+ext)[0];
+  return {id:name,name,ingredients:ingr,volume,abv,price:cost,available,img};
+}
+/* ---------- loadData gets CSV from sheet ------ */
+function loadData(){
+  return new Promise(res=>{
+    fetch(CSV_URL).then(r=>r.ok?r.text():Promise.reject())
+    .then(csv=>{
+      res(csv);
+    }).catch(()=>{
+      res(fallbackCSV); // fallback
+    });
+  }).then(csv=>{
+    const data = Papa.parse(csv,{header:true}).data;
+    const descCs={}, descEn={};
+    data.forEach((row,i)=>{
+      if(i===998){
+        Object.keys(row).forEach(k=>{
+          if(k){descCs[k.trim()]=row[k];}
         });
-      });
-
-      /* ---- Shots list (single spirits) ---- */
-      const shots = inventory.filter(i=>i.abv>0.05).map(i=>({
-        name:i.name,
-        price:+(i.pricePerMl * SHOT_ML).toFixed(2),
-        available:i.inStock
-      })).sort((a,b)=>a.name.localeCompare(b.name));
-
-      /* ---- build Drinks from RECIPES sheet ---- */
-      const drinkNames = Object.keys(recRaw[0]).filter(k=>k && k!=='Name' && !k.startsWith('_') && !/^Unnamed/i.test(k));
-      const drinks = {};
-      recRaw.forEach(row=>{
-        const rawName = row.Name && row.Name.trim(); if(!rawName) return; // skip blank lines
-        if(/^_?desc_/i.test(rawName)) return; // skip description rows from ingredient processing
-        const invObj = findInv(rawName);
-        if(!invObj) return; // unknown item – skip
-
-        drinkNames.forEach(dn=>{
-          const ml = toNum(row[dn]); if(ml<=0) return;
-          const d = drinks[dn] ??= {name:dn,volumeMl:0,alcSum:0,price:0,available:true,missing:[],parts:[]};
-          d.volumeMl += ml;
-          d.price    += ml * invObj.pricePerMl;
-          d.alcSum   += ml * invObj.abv;
-          d.parts.push({ingredient:invObj.name,ml,abv:+(invObj.abv*100).toFixed(1),inStock:invObj.inStock});
-          if(!invObj.inStock){ d.available=false; if(!d.missing.includes(invObj.name)) d.missing.push(invObj.name); }
+      }else if(i===999){
+        Object.keys(row).forEach(k=>{
+          if(k){descEn[k.trim()]=row[k];}
         });
-      });
-      Object.values(drinks).forEach(d=>{
-        d.alcPercent = d.volumeMl? +(d.alcSum/d.volumeMl*100).toFixed(2):0;
-        d.price      = +d.price.toFixed(2);
-        d.volumeMl   = +d.volumeMl.toFixed(0);
-      });
-
-      // merge in static fallback descriptions if sheet lacks entry
-      Object.keys(fallbackDescriptions.en).forEach(dr=>{
-        if(!descriptions.en[dr]) descriptions.en[dr] = fallbackDescriptions.en[dr];
-        if(!descriptions.cs[dr]) descriptions.cs[dr] = fallbackDescriptions.cs[dr];
-      });
-
-      return {drinks,shots,descriptions};
-    }
-
-    /* ===========================
-       Static fallback descriptions (editable)
-    ============================*/
-    const fallbackDescriptions = {
-      en:{
-        'Blue Lagoon':'A refreshing citrus‑vodka cocktail created in the late 1960s at Harry\'s New York Bar in Paris; its signature electric colour comes from blue curaçao.',
-        'Cosmopolitan':'Vodka, cranberry, triple sec and lime. A 1990s icon popularised by “Sex and the City”, yet rooted in much older recipes.',
-        'Cuba Libre':'Rum & cola with lime, born in Havana around 1900 to celebrate Cuba\'s liberation—and the arrival of Coca‑Cola.',
-        'Gin & Tonic':'19th‑century British officers added gin and lime to quinine tonic to make their anti‑malaria dose palatable. It stuck.',
-        'Midori Sour':'A neon‑green, melon‑flavoured twist on the whisky sour that followed the launch of Midori liqueur at Studio 54 in 1978.',
-        'Mojito':'Evolved from the 16th‑century “El Draque” remedy into today\'s rum, mint, lime, sugar and soda Cuban classic.',
-        'Porn Star Martini':'Created by Douglas Ankrah in London, 2002: passion‑fruit purée, vanilla vodka, and a chilled prosecco shot on the side.',
-        'White Russian':'Creamy sibling of the Black Russian (1949). Came back into vogue thanks to “The Big Lebowski” (1998).'
-      },
-      cs:{
-        'Blue Lagoon':'Osvěžující citrusový koktejl z vodky, který vznikl koncem 60. let v pařížském baru Harry\'s New York Bar. Elektrickou modrou barvu dodává likér blue curaçao.',
-        'Cosmopolitan':'Vodka, brusinkový džus, triple sec a limetka. Ikona 90. let proslavená seriálem “Sex ve městě”, přesto vychází z mnohem starších receptů.',
-        'Cuba Libre':'Rum s kolou a limetou vznikl v Havaně kolem roku 1900 na oslavu kubánské nezávislosti a příchodu Coca‑Coly.',
-        'Gin & Tonic':'Britští vojáci v 19. století přidávali gin a limetu do toniku s chininem, aby byl lék proti malárii chutnější. Tradice zůstala.',
-        'Midori Sour':'Neonově zelená melounová variace na whisky sour, která se objevila po uvedení likéru Midori v klubu Studio 54 roku 1978.',
-        'Mojito':'Kubánský oblíbenec sahající k nápoji “El Draque” ze 16. století; dnes směs rumu, máty, limetky, cukru a sody.',
-        'Porn Star Martini':'Vytvořil Douglas Ankrah v Londýně v roce 2002: marakuja, vanilková vodka a panák vychlazeného prosecca vedle.',
-        'White Russian':'Krémový kávově‑vodkový koktejl vycházející z Black Russian (1949); znovu jej proslavil film “Big Lebowski” (1998).'
+      }else{
+        const d=rowToDrink(row,i);
+        if(d) drinks.push(d);
       }
-    };
-
-    /* ===========================
-       Small UI helpers
-    ============================*/
-    const dot = avail=>`<span class="status ${avail?'ok':'no'}"></span>`;
-    const statusDot = d=>`<span class="status ${d.available?'ok':'no'}" title="${d.available?t('allInStock'):(t('missing')+': '+d.missing.join(', '))}"></span>`;
-
-    /* ===========================
-       Rendering functions
-    ============================*/
-    function renderList(drinksMap,shots,descs){
-      const drinks = Object.values(drinksMap).sort((a,b)=>a.name.localeCompare(b.name));
-      const app = document.getElementById('app');
-      app.innerHTML = `<h1>${t('drinks')}</h1>`;
-
-      // Drinks table
-      const tbl=document.createElement('table');
-      tbl.innerHTML = `<thead><tr><th>${t('drink')}</th><th style="text-align:center;width:1%">${t('availability')}</th><th>${t('price')}</th></tr></thead>`;
-      const tb=document.createElement('tbody');
-      drinks.forEach(d=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
-        tb.appendChild(tr);
-      });
-      tbl.appendChild(tb); app.appendChild(tbl);
-
-      // Shots table
-      if(shots.length){
-        app.insertAdjacentHTML('beforeend',`<h2>${t('shotList')}</h2>`);
-        const sTbl=document.createElement('table');
-        sTbl.innerHTML=`<thead><tr><th>${t('shot')}</th><th style="text-align:center;width:1%">${t('availability')}</th><th>${t('price')}</th></tr></thead>`;
-        const sb=document.createElement('tbody');
-        shots.forEach(s=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
-          sb.appendChild(tr);
-        });
-        sTbl.appendChild(sb); app.appendChild(sTbl);
-      }
-
-      // Descriptions table
-      app.insertAdjacentHTML('beforeend',`<h2>${t('description')}</h2>`);
-      const dTbl=document.createElement('table');
-      dTbl.innerHTML=`<thead><tr><th>${t('drink')}</th><th>${t('description')}</th></tr></thead>`;
-      const db=document.createElement('tbody');
-      drinks.forEach(d=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${d.name}</td><td>${descs[LANG][d.name]||''}</td>`;
-        db.appendChild(tr);
-      });
-      dTbl.appendChild(db); app.appendChild(dTbl);
-    }
-
-    function renderDetail(d,descs){
-      const app=document.getElementById('app');
-      app.innerHTML = `<a class="back" href="./">${t('back')}</a><h1>${d.name}</h1>`;
-
-      // Main picture
-      const exts=['.jpg','.jpeg','.png','.jxl'];
-      let imgPlaced=false;
-      for(const ext of exts){
-        const path=`Drink/${encodeURIComponent(d.name)}${ext}`;
-        const img=new Image();
-        img.src=path;img.alt=d.name;img.className='cocktail';
-        img.onload=()=>{if(!imgPlaced){app.insertBefore(img,app.children[2]||null);imgPlaced=true;}}
-      }
-
-      // Quick stats
-      app.insertAdjacentHTML('beforeend',`${statusDot(d)}<strong>${d.available?t('available'):t('unavailable')}</strong><br>${t('volume')}: <strong>${d.volumeMl} ${t('ml')}</strong><br>${t('alcohol')}: <strong>${d.alcPercent}% ${t('abv')}</strong><br>${t('price')}: <strong>${CURRENCY}${d.price.toFixed(2)}</strong>`);
-
-      // Ingredients table
-      const tbl=document.createElement('table');
-      tbl.innerHTML=`<thead><tr><th>${t('ingredient')}</th><th>${t('ml')}</th><th>${t('abv')}</th><th style="text-align:center;width:1%">${t('inStock')}</th></tr></thead>`;
-      const tb=document.createElement('tbody');
-      d.parts.forEach(p=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style="text-align:center">${dot(p.inStock)}</td>`;
-        tb.appendChild(tr);
-      });
-      tbl.appendChild(tb); app.appendChild(tbl);
-
-      // Description paragraph
-      const desc = descs[LANG][d.name]||'';
-      if(desc){
-        const p=document.createElement('p');p.textContent=desc;app.appendChild(p);
-      }
-
-      // Additional photos ( suffixed 2,3 … )
-      const photoDiv=document.createElement('div');photoDiv.style.display='flex';photoDiv.style.flexWrap='wrap';photoDiv.style.gap='1rem';
-      for(let i=2;i<=5;i++){
-        for(const ext of exts){
-          const img=document.createElement('img');
-          img.src=`Drink/${encodeURIComponent(d.name)}${i}${ext}`;
-          img.alt=d.name;img.className='cocktail';
-          img.onerror=()=>img.remove();photoDiv.appendChild(img);
-        }
-      }
-      app.appendChild(photoDiv);
-    }
-
-    /* ===========================
-       Main render controller
-    ============================*/
-    async function render(){
-      try{
-        const {drinks,shots,descriptions} = await loadBarData();
-        const q = new URLSearchParams(location.search).get('drink');
-        if(q && drinks[q]){ renderDetail(drinks[q],descriptions); }
-        else{ renderList(drinks,shots,descriptions); }
-      }catch(e){
-        document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
-        console.error(e);
-      }
-    }
-
-    // initial render & periodic refresh
-    render();
-    setInterval(render,REFRESH_MS);
-  </script>
+    });
+    // attach descriptions
+    drinks.forEach(d=>{
+      d.description={cs:descCs[d.name]||'',en:descEn[d.name]||''};
+    });
+  });
+}
+/* -------------- RENDER ----------------------- */
+function renderList(){
+  listEl.innerHTML='';
+  const tr=dict[lang];
+  drinks.forEach(d=>{
+    const card=document.createElement('div');
+    card.className='drink-card';
+    card.innerHTML=`<span class="avail ${d.available?'y':'n'}" title="${d.available?tr.available:tr.unavailable}"></span>${d.name}`;
+    card.onclick=()=>showDetail(d);
+    listEl.appendChild(card);
+  });
+}
+function showDetail(d){
+  const tr=dict[lang];
+  detailSec.dataset.id=d.id;
+  detailSec.classList.add('active');
+  listEl.closest('#listSection').classList.add('hidden');
+  const availLabel = d.available?tr.available:tr.unavailable;
+  const availDot = `<span class="avail ${d.available?'y':'n'}" title="${availLabel}"></span>${availLabel}`;
+  let html = `<button onclick="hideDetail()" style="margin-bottom:.7rem">${tr.back}</button>`;
+  html += `<h2>${d.name}</h2><p>${availDot}</p>`;
+  html += `<p>${tr.volume}: ${d.volume} ${tr.amount_ml}</p>`;
+  html += `<p>${tr.abv}: ${d.abv.toFixed(2)}${tr.abv_short}</p>`;
+  html += `<p>${tr.price}: ${tr.currency}${d.price.toFixed(2)}</p>`;
+  html += `<h3>${tr.ingredient}</h3>`;
+  html += `<table><thead><tr><th>${tr.ingredient}</th><th>${tr.amount_ml}</th><th>${tr.abv} ${tr.abv_short}</th><th>${tr.in_stock}</th></tr></thead><tbody>`;
+  d.ingredients.forEach(ing=>{
+    html+=`<tr><td>${ing.title}</td><td>${ing.ml}</td><td>${ing.abv}</td><td>${ing.in_stock?'✓':'✗'}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  if(d.img){
+    html+=`<img src="${d.img}" alt="${d.name}" onerror="this.style.display='none'">`;
+  }
+  const desc = d.description[lang]||'';
+  if(desc){
+    html+=`<p><span class="bold">${tr.popis}</span><br>${desc}</p>`;
+  }
+  detailSec.innerHTML=html;
+}
+window.hideDetail=function(){
+  detailSec.classList.remove('active');
+  listEl.closest('#listSection').classList.remove('hidden');
+}
+loadData().then(()=>{
+  applyLangLabels();
+  renderList();
+});
+})();</script>
 </body>
 </html>
