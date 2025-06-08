@@ -30,7 +30,7 @@
     const PUB_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwUNtFVPmX6ltXE7XyM12GlTYBTjadWSeUSbUZL7_IFYQANa2o-FSj9gDIAWxH2T-lse9nvlEyMQUL';
     const SHEETS = { INVENTORY: { gid: 310073761 }, RECIPES: { gid: 358185124 } };
     const CURRENCY = '€';
-    const REFRESH_MS = 5 * 60 * 1000;
+    const REFRESH_MS = 1 * 60 * 1000;  // refresh every minute
 
     /* HELPERS */
     const csvUrl = sheet => `${PUB_BASE}/pub?gid=${sheet.gid}&single=true&output=csv`;
