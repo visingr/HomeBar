@@ -33,13 +33,13 @@
   const SHEET_ID   = '1Vi7W4YksMjIfuO5sqtzIZJwOTClXsG8GXg6rHBczOwI';
   const SHEETS     = { INVENTORY:'Inventory', RECIPES:'DrinkList' };
   const CURRENCY   = '€';
-  const REFRESH_MS = 5*60*1000;        // 5 min
+  const REFRESH_MS = 5*60*1000;        // 5 min
   const SHOT_ML    = 40;               // standard shot size
 
   /* === I18N ============================================================ */
   const LANG = {
-    en: { drinks:'Drinks', availability:'Availability', price:'Price', shots:'Shots', shot:'Shot (40 ml)', available:'Available', unavailable:'Unavailable', volume:'Volume', alcohol:'Alcohol', abvSuffix:'% ABV', ingredient:'Ingredient', ml:'ml', abvPercent:'ABV %', inStock:'In stock', back:'← Back to list' },
-    cz: { drinks:'Nápoje', availability:'Dostupnost', price:'Cena', shots:'Panáky', shot:'Panák (40 ml)', available:'K dispozici', unavailable:'Není k dispozici', volume:'Objem', alcohol:'Obsah alkoholu', abvSuffix:'%', ingredient:'Ingredience', ml:'ml', abvPercent:'% alkoholu', inStock:'Na skladě', back:'← Zpět na seznam' }
+    en: { drinks:'Drinks', availability:'Availability', price:'Price', shots:'Shots', shot:'Shot (40 ml)', available:'Available', unavailable:'Unavailable', volume:'Volume', alcohol:'Alcohol', abvSuffix:'% ABV', ingredient:'Ingredient', ml:'ml', abvPercent:'ABV %', inStock:'In stock', back:'← Back to list' },
+    cz: { drinks:'Nápoje', availability:'Dostupnost', price:'Cena', shots:'Panáky', shot:'Panák (40 ml)', available:'K dispozici', unavailable:'Není k dispozici', volume:'Objem', alcohol:'Obsah alkoholu', abvSuffix:'%', ingredient:'Ingredience', ml:'ml', abvPercent:'% alkoholu', inStock:'Na skladě', back:'← Zpět na seznam' }
   };
   let currentLang = localStorage.getItem('lang') || 'en';
   document.documentElement.lang = currentLang;
@@ -81,14 +81,14 @@
     // build inventory map with normalization
     const invData = invRaw.filter(r=>r.Name).map(r=>{
       const name = r.Name.trim();
-      const abvVal = toNum(r[r.match(/^(alkohol|abv)$/i)?.input] || r['Alkohol']);
-      const abv = abvVal>1 ? abvVal/100 : abvVal;
-      return {
-        name,
-        abv,
-        pricePerMl: toNum(r[r.match(/^(cena.*\/l|price.*\/l)$/i)?.input] || r['Cena/L'])/1000,
-        inStock: Object.keys(r).find(k=>/^(stock|have|available|skladem)$/i.test(k)) ? toBool(r[Object.keys(r).find(k=>/^(stock|have|available|skladem)$/i.test(k))]) : true
-      };
+      const abvKey = Object.keys(r).find(k=>/^(alkohol|abv)$/i.test(k));
+      const abvVal = toNum(r[abvKey] || r['Alkohol']);
+      const abv = abvVal > 1 ? abvVal/100 : abvVal;
+      const priceKey = Object.keys(r).find(k=>/^(cena.*\/l|price.*\/l)$/i.test(k));
+      const pricePerMl = toNum(r[priceKey] || r['Cena/L'])/1000;
+      const stockKey = Object.keys(r).find(k=>/^(stock|have|available|skladem)$/i.test(k));
+      const inStock = stockKey ? toBool(r[stockKey]) : true;
+      return { name, abv, pricePerMl, inStock };
     });
     const invMap = Object.fromEntries(invData.map(i=>[normalize(i.name), i]));
 
@@ -106,7 +106,6 @@
       const key = normalize(row.Name);
       let inv = invMap[key];
       if(!inv) {
-        // fallback partial match
         const match = Object.keys(invMap).find(k=>k.includes(key) || key.includes(k));
         if(match) inv = invMap[match];
       }
@@ -138,12 +137,12 @@
     const app=document.getElementById('app'); app.innerHTML=`<h1>${labels.drinks}</h1>`;
 
     const tbl=document.createElement('table');
-    tbl.innerHTML=`<thead><tr><th>${labels.drinks}</th><th style="text-align:center;width:1%">${labels.availability}</th><th>${labels.price}</th></tr></thead>`;
+    tbl.innerHTML=`<thead><tr><th>${labels.drinks}</th><th style="text-align:center;width:1%">${labels.availability}</th><th>${labels.price}</th></thead>`;
     const tbody=document.createElement('tbody');
     drinks.forEach(d=>{
       const tr=document.createElement('tr');
       tr.innerHTML=
-        `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td>`+
+        `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</td>`+
         `<td style="text-align:center">${statusDot(d)}</td>`+
         `<td>${CURRENCY}${d.price.toFixed(2)}</td>`;
       tbody.appendChild(tr);
@@ -152,7 +151,7 @@
     if(shots.length){
       app.insertAdjacentHTML('beforeend', `<h2>${labels.shots}</h2>`);
       const sTbl=document.createElement('table');
-      sTbl.innerHTML=`<thead><tr><th>${labels.shot}</th><th style="text-align:center;width:1%">${labels.availability}</th><th>${labels.price}</th></tr></thead>`;
+      sTbl.innerHTML=`<thead><tr><th>${labels.shot}</th><th style="text-align:center;width:1%">${labels.availability}</th><th>${labels.price}</th></thead>`;
       const sBody=document.createElement('tbody');
       shots.forEach(s=>{
         const tr=document.createElement('tr');
@@ -173,7 +172,7 @@
 
     app.insertAdjacentHTML('beforeend',
       `${statusDot(d)}<strong>${d.available?labels.available:labels.unavailable}</strong><br>`+
-      `${labels.volume}: <strong>${d.volumeMl} ${labels.ml}</strong><br>`+
+      `${labels.volume}: <strong>${d.volumeMl} ${labels.ml}</strong><br>`+
       `${labels.alcohol}: <strong>${d.alcPercent}${labels.abvSuffix}</strong><br>`+
       `${labels.price}: <strong>${CURRENCY}${d.price.toFixed(2)}</strong>`);
 
@@ -186,7 +185,6 @@
       tb.appendChild(tr);
     }); tbl.appendChild(tb); app.appendChild(tbl);
 
-    // description rows: 999th (cz) and 1000th (en)
     const czDesc = recRaw[998] && recRaw[998][d.name] ? recRaw[998][d.name] : '';
     const enDesc = recRaw[999] && recRaw[999][d.name] ? recRaw[999][d.name] : '';
     const desc = currentLang==='cz' ? czDesc : enDesc;
