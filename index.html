@@ -11,7 +11,10 @@
     a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}
     table{border-collapse:collapse;width:100%;margin-top:1rem;}
     th,td{border:1px solid var(--border);padding:0.45rem 0.6rem;text-align:left;vertical-align:top;}
-    th{background:var(--bg-head);}img{max-width:320px;height:auto;display:block;margin:1rem 0;border-radius:0.5rem;box-shadow:0 4px 8px rgba(0,0,0,0.08);} .back{display:inline-block;margin-bottom:1rem;font-size:0.9rem;} .err{color:var(--err);max-width:600px;}
+    th{text-align:center;background:var(--bg-head);}
+    img{max-width:320px;height:auto;display:block;margin:1rem 0;border-radius:0.5rem;box-shadow:0 4px 8px rgba(0,0,0,0.08);}
+    .back{display:inline-block;margin-bottom:1rem;font-size:0.9rem;}
+    .err{color:var(--err);max-width:600px;}
     .status{display:inline-block;width:0.8rem;height:0.8rem;border-radius:50%;vertical-align:middle;margin-right:0.4rem}
     .status.ok{background:#28a745}
     .status.no{background:#dc3545}
@@ -59,7 +62,6 @@
       });
       const invMap = Object.fromEntries(inventory.map(i=>[i.key,i]));
 
-      // shots availability too
       const shots = inventory.filter(i=>i.abv>0.05).map(i=>({name:i.label, price:+(i.pricePerMl*SHOT_ML).toFixed(2), available:i.inStock})).sort((a,b)=>a.name.localeCompare(b.name));
 
       const drinkNames = Object.keys(recRaw[0]).filter(k=>k!=='Name'&&k&&!k.startsWith('_')&&!/Unnamed/i.test(k));
@@ -122,8 +124,9 @@
     async function render(){
       try{
         const {drinks,shots}=await loadBarData();
-        const qs=new URLSearchParams(location.search).get('drink');
-        if(qs&&drinks[qs]) renderDetail(drinks[qs]); else renderList(drinks,shots);
+        const qs = new URLSearchParams(location.search).get('drink');
+        const match = Object.values(drinks).find(d => slug(d.name) === slug(qs));
+        if (qs && match) renderDetail(match); else renderList(drinks, shots);
       }catch(e){ document.getElementById('app').innerHTML=`<p class="err">${e.message}</p>`; console.error(e); }
     }
     render(); setInterval(render,REFRESH_MS);
