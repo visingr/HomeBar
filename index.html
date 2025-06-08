@@ -35,7 +35,7 @@
   const SHOT_ML    = 40;
 
   /* === I18N === */
-  const LANG = { /* ... */ };
+  const LANG = { /* ... your translations here ... */ };
   let currentLang = localStorage.getItem('lang') || 'en';
   document.documentElement.lang = currentLang;
   document.getElementById('lang-switch').value = currentLang;
@@ -48,81 +48,119 @@
 
   /* === HELPERS === */
   const csvUrl = sheet => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
-  const normalize = str => str.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+  const normalize = str => String(str || "")
+                         .trim()
+                         .toLowerCase()
+                         .normalize('NFD')
+                         .replace(/[̀-ͯ]/g, '')
+                         .replace(/[\u00A0]/g, ' ')
+                         .replace(/\s+/g,' ');
   const toNum = v => typeof v==='number'?v:(!v?0:parseFloat(String(v).replace(/%/g,'').replace(/,/g,'.'))||0);
   const toBool = v => /^(y|yes|true|1)$/i.test(String(v).trim());
 
   /* === DATA LAYER === */
   async function fetchCsv(sheet){
-    const r=await fetch(csvUrl(sheet)); if(!r.ok) throw new Error(`Cannot load sheet “${sheet}” (${r.status})`);
+    const r = await fetch(csvUrl(sheet));
+    if(!r.ok) throw new Error(`Cannot load sheet “${sheet}” (${r.status})`);
     return Papa.parse((await r.text()).trim(),{header:true}).data;
   }
 
   async function loadBarData(){
-    const [invRaw, recRaw] = await Promise.all([fetchCsv(SHEETS.INVENTORY), fetchCsv(SHEETS.RECIPES)]);
+    const [invRaw, recRaw] = await Promise.all([
+      fetchCsv(SHEETS.INVENTORY),
+      fetchCsv(SHEETS.RECIPES)
+    ]);
 
-    const invData = invRaw.filter(r=>r.Name).map(r=>{
-      const name = r.Name.trim();
-      const abvVal = toNum(r['Alkohol']);
-      const abv = abvVal>1?abvVal/100:abvVal;
-      const pricePerMl = toNum(r['Cena/L'])/1000;
-      const inStock = toBool(r['Skladem']);
-      return { name, abv, pricePerMl, inStock };
-    });
+    // Build normalized inventory map
+    const inventory = invRaw
+      .filter(r => r.Name)
+      .map(r => {
+        const nameRaw = String(r.Name);
+        const abvVal  = toNum(r['Alkohol']);
+        const abv     = abvVal > 1 ? abvVal/100 : abvVal;
+        return {
+          name: nameRaw.trim(),
+          key: normalize(nameRaw),
+          abv,
+          pricePerMl: toNum(r['Cena/L'])/1000,
+          inStock: toBool(r['Skladem'])
+        };
+      });
 
-    const invMap = Object.fromEntries(invData.map(i=>[normalize(i.name), i]));
+    const invMap = Object.fromEntries(
+      inventory.map(item => [item.key, item])
+    );
 
-    const shots = invData.filter(i=>i.abv>0.05)
-      .map(i=>({ name: i.name, price: +(i.pricePerMl*SHOT_ML).toFixed(2), available: i.inStock }))
-      .sort((a,b)=>a.name.localeCompare(b.name));
+    // Prepare shots list
+    const shots = inventory
+      .filter(i => i.abv > 0.05)
+      .map(i => ({ name: i.name, price: +(i.pricePerMl*SHOT_ML).toFixed(2), available: i.inStock }))
+      .sort((a,b) => a.name.localeCompare(b.name));
 
-    const drinkNames = Object.keys(recRaw[0]).filter(k=>k!=='Name');
+    // Parse drinks
+    const drinkNames = Object.keys(recRaw[0]).filter(k => k !== 'Name');
     const drinks = {};
 
-    recRaw.forEach(row=>{
+    recRaw.forEach(row => {
       if(!row.Name) return;
-      const key = normalize(row.Name);
-      let inv = invMap[key];
+      const rawName = row.Name;
+      const key     = normalize(rawName);
+      let inv       = invMap[key];
+
+      // Fallback fuzzy match if exact key not found
       if(!inv){
-        const strippedKey = key.replace(/\s+/g,'');
-        const match = Object.keys(invMap).find(k2=>{
-          const stripped = k2.replace(/\s+/g,'');
+        const strippedKey = key.replace(/\s+/g, '');
+        const match = Object.keys(invMap).find(k2 => {
+          const stripped = k2.replace(/\s+/g, '');
           return k2.includes(key) || key.includes(k2) || stripped.includes(strippedKey) || strippedKey.includes(stripped);
         });
         if(match) inv = invMap[match];
       }
       if(!inv) return;
 
-      drinkNames.forEach(dn=>{
-        const ml = toNum(row[dn]); if(ml<=0) return;
+      // Assign ml values to each drink column
+      drinkNames.forEach(dn => {
+        const ml = toNum(row[dn]);
+        if(ml <= 0) return;
         const d = drinks[dn] ??= { name: dn, volumeMl:0, alcPercent:0, price:0, available:true, missing:[], parts:[] };
         d.volumeMl += ml;
-        d.price += ml * inv.pricePerMl;
+        d.price    += ml * inv.pricePerMl;
         d.alcPercent += ml * inv.abv;
         d.parts.push({ ingredient: inv.name, ml, abv: +(inv.abv*100).toFixed(1), inStock: inv.inStock });
-        if(!inv.inStock){ d.available=false; if(!d.missing.includes(inv.name)) d.missing.push(inv.name); }
+        if(!inv.inStock){ d.available = false; if(!d.missing.includes(inv.name)) d.missing.push(inv.name); }
       });
     });
 
-    Object.values(drinks).forEach(d=>{
+    // Finalize drink calculations
+    Object.values(drinks).forEach(d => {
       d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2);
-      d.price = +d.price.toFixed(2);
-      d.volumeMl = +d.volumeMl.toFixed(0);
+      d.price      = +d.price.toFixed(2);
+      d.volumeMl   = +d.volumeMl.toFixed(0);
     });
 
     return { drinks, shots, recRaw };
   }
 
   /* === RENDERING === */
-  function dot(ok){return `<span class=\"status ${ok?'ok':'no'}\"></span>`;}
-  function statusDot(d){return `<span class=\"status ${d.available?'ok':'no'}\" title=\"${d.available?'All ingredients in stock':'Missing: '+d.missing.join(', ')}\"></span>`;}
+  function dot(ok){ return `<span class="status ${ok?'ok':'no'}"></span>`; }
+  function statusDot(d){ return `<span class="status ${d.available?'ok':'no'}" title="${d.available?'All ingredients in stock':'Missing: '+d.missing.join(', ')}"></span>`; }
 
   function renderList(drinksMap, shots, labels){ /* ... unchanged ... */ }
   function renderDetail(d, labels, recRaw){ /* ... unchanged ... */ }
 
   /* === BOOTSTRAP === */
   async function render(){
-    try{ const {drinks,shots,recRaw}=await loadBarData();const labels=LANG[currentLang];const qs=new URLSearchParams(location.search).get('drink');if(qs&&drinks[qs])renderDetail(drinks[qs],labels,recRaw);else renderList(drinks,shots,labels);}catch(e){document.getElementById('app').innerHTML=`<p class=\"err\">${e.message}</p>`;console.error(e);}  }
+    try{
+      const { drinks, shots, recRaw } = await loadBarData();
+      const labels = LANG[currentLang];
+      const qs = new URLSearchParams(location.search).get('drink');
+      if(qs && drinks[qs]) renderDetail(drinks[qs], labels, recRaw);
+      else renderList(drinks, shots, labels);
+    } catch(e){
+      document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
+      console.error(e);
+    }
+  }
 
   render();
   setInterval(render, REFRESH_MS);
