@@ -1,13 +1,14 @@
 <!--
 Home Bar Website – autorefreshing single‑page site
 ==================================================
-**Version 4 – adds a “Shots” section**
+**Version 5 – prices fixed**
 
-* Under the main cocktail list a new **Shots** heading appears, showing every
-  ingredient whose ABV > 5 % as a 40 ml shot with its price.
-* Shots are priced on‑the‑fly from *Inventory* (`pricePerMl × 40` → rounded to
-  two decimals).
-* Everything still auto‑refreshes every 5 minutes.
+* **Robust number parser** now strips currency symbols (€, Kč, etc.), spaces
+  and thin‑spaces before converting, so price cells like “€12,50” or “890 CZK”
+  no longer evaluate to zero.
+* ABV handling tweaked: if the numeric value is > 1 we treat it as percent and
+  divide by 100.
+* Cocktail prices and 40 ml shot prices now show correctly.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -41,10 +42,18 @@ Home Bar Website – autorefreshing single‑page site
 
   const slug = str => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_').replace(/[^\w\-]/g,'');
 
+  /**
+   * Convert a locale‑messy cell value to plain Number.
+   * Handles comma decimals, thousands separators, leading currency symbols.
+   */
   const toNum = v => {
     if(typeof v==='number') return v;
     if(!v) return 0;
-    return parseFloat(String(v).replace('%','').replace(',','.'))||0;
+    const cleaned = String(v)
+      .replace(/[^0-9.,\-]/g,'')          // keep digits , . - only
+      .replace(/\s+/g,'')                // remove spaces/thin spaces
+      .replace(',','.');                  // first comma → dot
+    return parseFloat(cleaned)||0;
   };
 
   /* DATA */
@@ -59,30 +68,35 @@ Home Bar Website – autorefreshing single‑page site
       fetchCsv(SHEETS.INVENTORY), fetchCsv(SHEETS.RECIPES)
     ]);
 
-    const inventory = invRaw.map(r=>({
-      name:r.Name,
-      abv: toNum(r.Alkohol)/(String(r.Alkohol).includes('%')?100:1),
-      pricePerMl: toNum(r['Cena/L'])/1000
-    })).filter(i=>i.name);   // drop blank lines
+    // --- Inventory ------------------------------------------------------
+    const inventory = invRaw.map(r=>{
+      const abvVal = toNum(r.Alkohol);
+      const abv    = abvVal>1 ? abvVal/100 : abvVal;   // 40 → 0.40
+      return {
+        name : r.Name,
+        abv,
+        pricePerMl : toNum(r['Cena/L'])/1000
+      };
+    }).filter(i=>i.name && i.pricePerMl>0);
 
-    /* Build shots list */
+    // --- Shots ----------------------------------------------------------
     const shots = inventory.filter(i=>i.abv>0.05).map(i=>({
-      name:i.name,
-      price:+(i.pricePerMl*SHOT_ML).toFixed(2)
+      name : i.name,
+      price: +(i.pricePerMl*SHOT_ML).toFixed(2)
     })).sort((a,b)=>a.name.localeCompare(b.name));
 
-    /* Build drinks list */
+    // --- Cocktails ------------------------------------------------------
     const ingSet = new Set(inventory.map(i=>i.name));
     const drinkNames = Object.keys(recRaw[0]).filter(k=>k!=='Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
     const drinks = Object.fromEntries(drinkNames.map(n=>[n,{name:n,volumeMl:0,alcPercent:0,price:0,parts:[]}]));
 
     recRaw.forEach(row=>{
       const ingredient=row.Name;
-      if(!ingredient || !ingSet.has(ingredient)) return;   // skip stray rows
+      if(!ingredient || !ingSet.has(ingredient)) return;   // ignore stray rows
       drinkNames.forEach(dn=>{
         const ml=toNum(row[dn]);
         if(ml>0){
-          const inv=inventory.find(i=>i.name===ingredient) || {abv:0,pricePerMl:0};
+          const inv=inventory.find(i=>i.name===ingredient);
           const d=drinks[dn];
           d.volumeMl+=ml;
           d.price+=ml*inv.pricePerMl;
@@ -107,7 +121,6 @@ Home Bar Website – autorefreshing single‑page site
     const app=document.getElementById('app');
     app.innerHTML='<h1>Drinks</h1>';
 
-    // drinks table
     const tbl=document.createElement('table');
     tbl.innerHTML='<thead><tr><th>Drink</th><th>Price</th></tr></thead>';
     const tbody=document.createElement('tbody');
@@ -118,7 +131,6 @@ Home Bar Website – autorefreshing single‑page site
     });
     tbl.appendChild(tbody); app.appendChild(tbl);
 
-    // shots heading + table
     if(shots.length){
       app.insertAdjacentHTML('beforeend','<h2>Shots</h2>');
       const sTbl=document.createElement('table');
@@ -137,8 +149,8 @@ Home Bar Website – autorefreshing single‑page site
     const app=document.getElementById('app');
     app.innerHTML=`<a class="back" href="./">← Back to list</a><h1>${d.name}</h1>`;
     const img=document.createElement('img'); img.src=`images/${slug(d.name)}.jpg`; img.alt=d.name; img.onerror=()=>img.remove(); app.appendChild(img);
-    app.insertAdjacentHTML('beforeend',`<p>Volume: <strong>${d.volumeMl} ml</strong><br>Alcohol: <strong>${d.alcPercent}% ABV</strong><br>Price: <strong>${CURRENCY}${d.price.toFixed(2)}</strong></p>`);
-    const tbl=document.createElement('table'); tbl.innerHTML='<thead><tr><th>Ingredient</th><th>ml</th><th>ABV %</th></tr></thead>'; const tb=document.createElement('tbody'); d.parts.forEach(p=>{const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td>`; tb.appendChild(tr);}); tbl.appendChild(tb); app.appendChild(tbl);
+    app.insertAdjacentHTML('beforeend',`<p>Volume: <strong>${d.volumeMl} ml</strong><br>Alcohol: <strong>${d.alcPercent}% ABV</strong><br>Price: <strong>${CURRENCY}${d.price.toFixed(2)}</strong></p>`);
+    const tbl=document.createElement('table'); tbl.innerHTML='<thead><tr><th>Ingredient</th><th>ml</th><th>ABV %</th></tr></thead>'; const tb=document.createElement('tbody'); d.parts.forEach(p=>{const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td>`; tb.appendChild(tr);}); tbl.appendChild(tb); app.appendChild(tbl);
     app.insertAdjacentHTML('beforeend','<p>Description coming soon…</p>');
   }
 
