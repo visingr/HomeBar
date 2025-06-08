@@ -1,77 +1,122 @@
 <!DOCTYPE html>
 <html lang="">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bar Drinks</title>
-<style>
-:root{--accent:#037bfa;--bg:#fafafa;--border:#d7d7d7}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:#222}
-header{display:flex;justify-content:space-between;align-items:center;padding:1rem;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:2}
-h1{margin:0;font-size:1.4rem}
-#langSel{font-size:.9rem;padding:.3rem .5rem}
-main{padding:1rem;max-width:900px;margin:auto}
-.drink-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
-.drink-card{padding:1rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;transition:box-shadow .2s}
-.drink-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.1)}
-.avail{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.4em;vertical-align:middle}
-.avail.y{background:#0a0}
-.avail.n{background:#c00}
-.detail{display:none}
-.detail.active{display:block}
-.detail img{width:100%;max-width:512px;margin:.5rem 0;border-radius:8px}
-table{width:100%;border-collapse:collapse;margin:.5rem 0}
-th,td{border:1px solid var(--border);padding:.4rem;text-align:left;font-size:.9rem}
-th{background:var(--bg)}
-.bold{font-weight:600}
-.hidden{display:none}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bar Drinks</title>
+  <style>
+    :root{--accent:#037bfa;--bg:#fafafa;--border:#d7d7d7}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:#222}
+    header{display:flex;justify-content:space-between;align-items:center;padding:1rem;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:2}
+    h1{font-size:1.4rem;margin:0}
+    #langSel{font-size:.9rem;padding:.3rem .5rem}
+    main{padding:1rem;max-width:900px;margin:auto}
+    table{width:100%;border-collapse:collapse;margin:.5rem 0}
+    th,td{border:1px solid var(--border);padding:.5rem;text-align:left;font-size:.9rem}
+    th{background:var(--bg)}
+    tr.clickable{cursor:pointer;transition:background .2s}
+    tr.clickable:hover{background:rgba(0,0,0,.05)}
+    .avail-dot{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.4em;vertical-align:middle}
+    .y{background:#0a0}
+    .n{background:#c00}
+    .detail{display:none}
+    .detail.active{display:block}
+    .detail img{width:100%;max-width:512px;margin:.5rem 0;border-radius:8px}
+    .bold{font-weight:600}
+  </style>
 </head>
 <body>
-<header>
-  <h1 id="appTitle"></h1>
-  <select id="langSel"></select>
-</header>
-<main>
-  <section id="listSection">
-    <div class="drink-list" id="drinkList"></div>
-  </section>
-  <section id="detailSection" class="detail"></section>
-</main>
-<script>
-// Embedded data
-const inventory = {"Absolut":{"pricePerL":15.0,"abv":0.4,"inStock":true},"Absolut Raspberry":{"pricePerL":16.0,"abv":0.4,"inStock":true},"Absolut Peach":{"pricePerL":16.0,"abv":0.4,"inStock":true},"Absolut Vanilla":{"pricePerL":16.0,"abv":0.4,"inStock":true},"Gin 11/85":{"pricePerL":9.0,"abv":0.4,"inStock":true},"Cointreau":{"pricePerL":24.0,"abv":0.4,"inStock":true},"Hendricks":{"pricePerL":50.0,"abv":0.4,"inStock":false},"Tanqueray":{"pricePerL":22.0,"abv":0.4,"inStock":true},"Islandic Vodka":{"pricePerL":11.0,"abv":0.375,"inStock":true},"Bacardi White":{"pricePerL":14.0,"abv":0.35,"inStock":true},"Blue Curacao":{"pricePerL":14.0,"abv":0.2,"inStock":true},"Khalúha":{"pricePerL":25.0,"abv":0.2,"inStock":false},"Midori":{"pricePerL":27.0,"abv":0.2,"inStock":true},"Pepermint":{"pricePerL":9.0,"abv":0.19,"inStock":false},"Passoa":{"pricePerL":16.0,"abv":0.17,"inStock":true},"Pisang Ambo":{"pricePerL":16.0,"abv":0.17,"inStock":true},"Bacardi Black":{"pricePerL":14.0,"abv":0.35,"inStock":true},"Amaretto":{"pricePerL":18.0,"abv":0.28,"inStock":true},"Kahlua":{"pricePerL":25.0,"abv":0.2,"inStock":false},"Cream 40%":{"pricePerL":10.0,"abv":0.0,"inStock":true},"Vodka LIME":{"pricePerL":12.0,"abv":0.37,"inStock":true},"Triple Sec":{"pricePerL":20.0,"abv":0.4,"inStock":true},"Gin":{"pricePerL":22.0,"abv":0.4,"inStock":true},"Rum White":{"pricePerL":14.0,"abv":0.35,"inStock":true},"Tequila Silver":{"pricePerL":28.0,"abv":0.4,"inStock":true},"Cachaca":{"pricePerL":15.0,"abv":0.38,"inStock":true},"Simple syrup":{"pricePerL":5.0,"abv":0.0,"inStock":true},"Lime Juice":{"pricePerL":10.0,"abv":0.0,"inStock":true},"Cranberry juice":{"pricePerL":8.0,"abv":0.0,"inStock":true},"Orange Juice":{"pricePerL":7.0,"abv":0.0,"inStock":true},"Tonic Schweppes Plastic":{"pricePerL":2.0,"abv":0.0,"inStock":true},"Tonic Schweppes Glass":{"pricePerL":3.0,"abv":0.0,"inStock":true},"Coca Cola":{"pricePerL":3.0,"abv":0.0,"inStock":true},"Strawberry syrup":{"pricePerL":6.0,"abv":0.0,"inStock":true},"Sparking Watter":{"pricePerL":1.0,"abv":0.0,"inStock":true}};
-const recipes = {"White Russian":{"Absolut":50.0,"Kahlua":40.0,"Cream 40%":40.0},"Cosmopolitan":{"Absolut Raspberry":40.0,"Triple Sec":30.0,"Lime Juice":15.0,"Cranberry juice":120.0},"Blue Lagoon":{"Islandic Vodka":40.0,"Blue Curacao":20.0,"Orange Juice":120.0},"Screwdriver":{"Absolut":40.0,"Orange Juice":200.0},"Midori Sour":{"Midori":40.0,"Lime Juice":20.0,"Simple syrup":20.0},"Mojito":{"Rum White":50.0,"Lime Juice":30.0,"Simple syrup":15.0},"Strawberry Mojito":{"Rum White":50.0,"Lime Juice":30.0,"Strawberry syrup":15.0},"Moscow Mule":{"Absolut":40.0,"Ginger Beer":230.0},"Pornstar Martini":{"Vodka LIME":40.0,"Passoa":30.0,"Prosecco Shot":50.0},"Gin Tonic":{"Gin":60.0,"Tonic Schweppes Plastic":200.0},"Gin Tonic Premium":{"Hendricks":50.0,"Tonic Schweppes Glass":200.0},"Cuba Libre":{"Bacardi White":60.0,"Lime Juice":15.0,"Coca Cola":230.0},"Daiquiri":{"Rum White":60.0,"Lime Juice":30.0,"Simple syrup":15.0},"Strawberry Daiquiri":{"Rum White":60.0,"Lime Juice":30.0,"Strawberry syrup":15.0},"Skinny Bitch":{"Absolut":60.0,"Sparking Watter":200.0,"Lime Juice":15.0}};
-const descriptions = {"White Russian":{"en":"A creamy cocktail combining vodka, coffee liqueur & cream, invented in the 1960s and made famous by popular culture.","cs":"Krémový koktejl spojující vodku, kávový likér a smetanu, vynalezený v 60. letech a proslavený v populární kultuře."},"Cosmopolitan":{"en":"A stylish mix of vodka, triple sec, cranberry juice, and lime, popularized in the 1990s through cocktail culture.","cs":"Stylová kombinace vodky, triple sec, brusinkového džusu a limetky, proslavená v 90. letech díky barové kultuře."},"Blue Lagoon":{"en":"A refreshing citrus cocktail of vodka and blue curaçao with lemonade, created in the 1970s at Harry's New York Bar in Paris.","cs":"Osvěžující citrusový koktejl z vodky a blue curaçao s limonádou, vytvořený v 70. letech v baru Harry's New York Bar v Paříži."},"Screwdriver":{"en":"A simple mix of vodka and orange juice, its name dating back to American oil workers of mid-20th century.","cs":"Jednoduchá kombinace vodky a pomerančového džusu, pojmenovaná podle amerických ropných dělníků ze středního 20. století."},"Midori Sour":{"en":"A vibrant melon-flavored cocktail made with Midori liqueur and sour mix, introduced in 1968 by Japanese distillers.","cs":"Živý koktejl s chutí melounu z likéru Midori a kyselé směsi, představený v roce 1968 japonskými destilériemi."},"Mojito":{"en":"A Cuban classic of rum, lime, mint, sugar, and soda water, dating back to Havana in the 16th century.","cs":"Kubánská klasika z rumu, limetky, máty, cukru a sodové vody, sahající až do 16. století."},"Strawberry Mojito":{"en":"A fruity twist on the classic Mojito, adding fresh strawberries for a sweet aroma.","cs":"Ovocná varianta klasického Mojita, která přidává čerstvé jahody pro sladkou vůni."},"Moscow Mule":{"en":"A zesty blend of vodka, ginger beer and lime, invented in 1940s Hollywood and served in a copper mug.","cs":"Ostrá směs vodky, zázvorového piva a limetky, vynalezená ve 40. letech v Hollywoodu a servírovaná v měděném hrnku."},"Pornstar Martini":{"en":"A modern cocktail of passion fruit vodka, vanilla liqueur and prosecco shot, created in London in 2002.","cs":"Moderní koktejl z vodky s maracujovou příchutí, vanilkového likéru a panáku prosecca, vytvořený v Londýně v roce 2002."},"Gin Tonic":{"en":"The classic highball of gin and tonic water, with roots in 19th-century British colonial India.","cs":"Klasický highball z ginu a tonicové vody s kořeny v britské kolonální Indii 19. století."},"Gin Tonic Premium":{"en":"An upscale version of the Gin & Tonic, using premium Hendrick's gin and glass-bottled tonic.","cs":"VIP varianta Gin & Tonic s prémiovým ginem Hendrick's a tonicem v skleněné lahvi."},"Cuba Libre":{"en":"A historical mix of rum, cola and lime, born in Cuba around 1900 celebrating independence.","cs":"Historická směs rumu, coly a limetky, vzniklá na Kubě kolem roku 1900 k oslavě nezávislosti."},"Daiquiri":{"en":"A simple yet elegant blend of rum, lime juice and sugar, originating from the early 20th century in Cuba.","cs":"Jednoduchá, ale elegantní kombinace rumu, limetkové šťávy a cukru, pocházející z počátku 20. století na Kubě."},"Strawberry Daiquiri":{"en":"A sweet fruit variation of the Daiquiri, incorporating fresh strawberries for vibrant flavor.","cs":"Sladká ovocná varianta Daiquiri, obsahující čerstvé jahody pro výraznou chuť."},"Skinny Bitch":{"en":"A low-calorie drink mixing vodka with soda water and lime, created for a lighter cocktail option.","cs":"Nízkokalorický nápoj kombinující vodku se sodovkou a limetkou, vytvořený jako lehká varianta."}};
-// Utility to find image
-function findImage(name, dir='Drink/'){
-  const exts=['.jpg','.jpeg','.png','.jxl','.JPG','.JPEG','.PNG','.JXL'];
-  return new Promise(res=>{
-    let i=0;
-    function tryNext(){
-      if(i>=exts.length){res(null);return;}
-      const img=new Image();
-      const path=dir+name+exts[i];
-      img.onload=()=>res(path);
-      img.onerror=()=>{i++;tryNext();};
-      img.src=path;
-    }
-    tryNext();
-  });
-}
-(function(){
-  const dict={en:{title:'Our Drinks',available:'Available',unavailable:'Missing ingredients',volume:'Volume',abv:'ABV',price:'Price',ingredient:'Ingredient',amount_ml:'ml',abv_short:'%',in_stock:'In stock',popis:'Description',back:'← Back',currency:'€'},cs:{title:'Naše drinky',available:'Dostupný',unavailable:'Chybí ingredience',volume:'Objem',abv:'Obsah alkoholu',price:'Cena',ingredient:'Ingredience',amount_ml:'ml',abv_short:'%',in_stock:'Skladem',popis:'Popis',back:'← Zpět',currency:'€'}};
-  const langSel=document.getElementById('langSel'),appTitle=document.getElementById('appTitle'),listEl=document.getElementById('drinkList'),detailSec=document.getElementById('detailSection');
-  let lang=localStorage.getItem('lang')||((navigator.language||'en').toLowerCase().startsWith('cs')?'cs':'en');
-  document.documentElement.lang=lang;
-  function applyLang(){const tr=dict[lang];appTitle.textContent=tr.title; if(!langSel.options.length){for(const k in dict){const o=document.createElement('option');o.value=k;o.textContent=k.toUpperCase();langSel.appendChild(o);}} langSel.value=lang; if(detailSec.classList.contains('active'))showDetail(current);}
-  langSel.addEventListener('change',e=>{lang=e.target.value;localStorage.setItem('lang',lang);applyLang();});
-  const drinks=Object.keys(recipes).map(name=>{const arr=[],obj=recipes[name];let volume=0,alcMl=0,cost=0;for(const ing in obj){const ml=obj[ing],inv=inventory[ing]||{},abv=(inv.abv||0)*100,pricePerL=inv.pricePerL||0,in_stock=inv.inStock!==false;const ingCost=pricePerL*(ml/1000);volume+=ml;alcMl+=ml*(abv/100);cost+=ingCost;arr.push({title:ing,ml,abv,in_stock});}const abv=volume?alcMl/volume*100:0;return {id:name,name,ingredients:arr,volume,abv,price:cost,available:arr.every(i=>i.in_stock),img:null,description:descriptions[name]||{en:'',cs:''}};});
-  Promise.all(drinks.map(d=>findImage(d.name).then(src=>d.img=src))).then(()=>{applyLang();renderList();});
-  function renderList(){listEl.innerHTML='';const tr=dict[lang];drinks.forEach(d=>{const c=document.createElement('div');c.className='drink-card';const dot=`<span class='avail ${d.available?'y':'n'}' title='${d.available?tr.available:tr.unavailable}'></span>`;c.innerHTML=dot+d.name;c.onclick=()=>showDetail(d);listEl.appendChild(c);});}
-  let current=null;window.hideDetail=()=>{detailSec.classList.remove('active');document.getElementById('listSection').classList.remove('hidden');};
-  function showDetail(d){current=d;const tr=dict[lang];detailSec.classList.add('active');document.getElementById('listSection').classList.add('hidden');let html=`<button onclick="hideDetail()" style="margin-bottom:.7rem">${tr.back}</button>`;html+=`<h2>${d.name}</h2><p><span class='avail ${d.available?'y':'n'}' title='${d.available?tr.available:tr.unavailable}'></span>${d.available?tr.available:tr.unavailable}</p>`;html+=`<p>${tr.volume}: ${d.volume} ${tr.amount_ml}</p>`;html+=`<p>${tr.abv}: ${d.abv.toFixed(2)}${tr.abv_short}</p>`;html+=`<p>${tr.price}: ${tr.currency}${d.price.toFixed(2)}</p>`;html+=`<h3>${tr.ingredient}</h3><table><thead><tr><th>${tr.ingredient}</th><th>${tr.amount_ml}</th><th>${tr.abv} ${tr.abv_short}</th><th>${tr.in_stock}</th></tr></thead><tbody>`;d.ingredients.forEach(i=>{html+=`<tr><td>${i.title}</td><td>${i.ml}</td><td>${i.abv}</td><td>${i.in_stock?'✓':'✗'}</td></tr>`;});html+='</tbody></table>';if(d.img)html+=`<img src='${d.img}' alt='${d.name}'>`;const desc=d.description[lang];if(desc)html+=`<p><span class='bold'>${tr.popis}</span><br>${desc}</p>`;detailSec.innerHTML=html;} })();
-</script>
+  <header>
+    <h1 id="appTitle"></h1>
+    <select id="langSel"></select>
+  </header>
+  <main>
+    <section id="listSection">
+      <table id="drinkTable">
+        <thead><tr><th>Drink</th><th></th><th>Price</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+    <section id="detailSection" class="detail"></section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script>
+    (function(){
+      const SHEET_ID = 'YOUR_SHEET_ID_HERE';
+      const SHEET_NAME = 'DrinkList';
+      const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+      const IMAGE_DIR = 'Drink/';
+      const dict = {
+        en:{title:'Our Drinks',available:'Available',unavailable:'Missing ingredients',volume:'Volume',abv:'ABV',price:'Price',ingredient:'Ingredient',amount_ml:'ml',abv_short:'%',in_stock:'In stock',popis:'Description',back:'← Back',currency:'€'},
+        cs:{title:'Naše drinky',available:'Dostupný',unavailable:'Chybí ingredience',volume:'Objem',abv:'Obsah alkoholu',price:'Cena',ingredient:'Ingredience',amount_ml:'ml',abv_short:'%',in_stock:'Skladem',popis:'Popis',back:'← Zpět',currency:'€'}
+      };
+      const langSel = document.getElementById('langSel');
+      const appTitle = document.getElementById('appTitle');
+      const tableBody = document.querySelector('#drinkTable tbody');
+      const detailSec = document.getElementById('detailSection');
+      let lang = localStorage.getItem('lang') || ((navigator.language||'en').toLowerCase().startsWith('cs')?'cs':'en');
+      let drinks = [];
+      function applyLang(){
+        const tr = dict[lang];
+        appTitle.textContent = tr.title;
+        if(!langSel.options.length){
+          Object.keys(dict).forEach(k=>{const o=new Option(k.toUpperCase(),k);langSel.add(o)});
+        }
+        langSel.value = lang;
+        if(detailSec.classList.contains('active') && detailSec.dataset.id){
+          showDetail(drinks.find(d=>d.id===detailSec.dataset.id));
+        } else {
+          renderList();
+        }
+      }
+      langSel.addEventListener('change',()=>{lang=langSel.value;localStorage.setItem('lang',lang);applyLang()});
+      function rowToDrink(row,i){
+        const name=row['Name']?.trim(); if(!name) return null;
+        const ingr=[]; Object.keys(row).forEach(k=>{if(k.endsWith(' ml')){const base=k.slice(0,-3);const ml=+row[k]||0;if(ml){ingr.push({title:base,ml,abv:+row[base+' abv']||0,cost:+row[base+' price']||0,in_stock:!(row[base+' stock']||'').toLowerCase().includes('no')});}}});
+        let volume=0,alcMl=0,cost=0;ingr.forEach(x=>{volume+=x.ml;alcMl+=x.ml*x.abv/100;cost+=x.cost});
+        const d={id:name,name,ingredients:ingr,volume,abv:volume?alcMl/volume*100:0,price:cost,available:ingr.every(x=>x.in_stock)};
+        // find image
+        ['.jpg','.jpeg','.png','.jxl'].forEach(ext=>{const p=IMAGE_DIR+name+ext;if(!d.img) d.img=p});
+        return d;
+      }
+      function loadData(){
+        return fetch(CSV_URL).then(r=>r.ok?r.text():Promise.reject()).catch(()=>Promise.resolve('')).then(csv=>{
+          const data = Papa.parse(csv,{header:true}).data;
+          const desc={cs:{},en:{}};
+          data.forEach((row,i)=>{
+            if(i===998||i===999){const key=i===998?'cs':'en';Object.keys(row).forEach(k=>row[k]?desc[key][k.trim()]=row[k]:null)} else {
+              const d=rowToDrink(row,i); if(d) drinks.push(d);
+            }
+          });
+          drinks.forEach(d=>d.description={cs:desc.cs[d.name]||'',en:desc.en[d.name]||''});
+        });
+      }
+      function renderList(){
+        tableBody.innerHTML=''; const tr=dict[lang];
+        drinks.forEach(d=>{
+          const row=document.createElement('tr'); row.className='clickable'; row.dataset.id=d.id;
+          row.onclick=()=>showDetail(d);
+          const dot=`<span class="avail-dot ${d.available?'y':'n'}" title="${d.available?tr.available:tr.unavailable}"></span>`;
+          row.innerHTML=`<td>${d.name}</td><td>${dot}</td><td>${tr.currency}${d.price.toFixed(2)}</td>`;
+          tableBody.appendChild(row);
+        });
+      }
+      function showDetail(d){
+        const tr=dict[lang]; detailSec.innerHTML=''; detailSec.dataset.id=d.id; detailSec.classList.add('active');
+        document.getElementById('listSection').style.display='none';
+        let html=`<button onclick="hideDetail()">${tr.back}</button><h2>${d.name}</h2><p><span class='avail-dot ${d.available?'y':'n'}' title=''></span>${d.available?tr.available:tr.unavailable}</p>`;
+        html+=`<p>${tr.volume}: ${d.volume} ${tr.amount_ml}</p><p>${tr.abv}: ${d.abv.toFixed(2)}${tr.abv_short}</p><p>${tr.price}: ${tr.currency}${d.price.toFixed(2)}</p>`;
+        html+=`<h3>${tr.ingredient}</h3><table><thead><tr><th>${tr.ingredient}</th><th>${tr.amount_ml}</th><th>${tr.abv} ${tr.abv_short}</th><th>${tr.in_stock}</th></tr></thead><tbody>`;
+        d.ingredients.forEach(ing=>{html+=`<tr><td>${ing.title}</td><td>${ing.ml}</td><td>${ing.abv}</td><td>${ing.in_stock?'✓':'✗'}</td></tr>`});
+        html+='</tbody></table>';
+        if(d.img) html+=`<img src='${d.img}' alt='${d.name}' onerror="this.style.display='none'">`;
+        const desc=d.description[lang]; if(desc) html+=`<p><span class='bold'>${tr.popis}</span><br>${desc}</p>`;
+        detailSec.innerHTML=html;
+      }
+      window.hideDetail=function(){detailSec.classList.remove('active');document.getElementById('listSection').style.display='block'};
+      loadData().then(()=>{applyLang();renderList();});
+    })();
+  </script>
 </body>
 </html>
