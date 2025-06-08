@@ -12,14 +12,156 @@
     table{border-collapse:collapse;width:100%;margin-top:1rem;}
     th,td{border:1px solid var(--border);padding:0.45rem 0.6rem;text-align:left;vertical-align:top;}
     th{background:var(--bg-head);}img{max-width:320px;height:auto;display:block;margin:1rem 0;border-radius:0.5rem;box-shadow:0 4px 8px rgba(0,0,0,0.08);} .back{display:inline-block;margin-bottom:1rem;font-size:0.9rem;} .err{color:var(--err);max-width:600px;}
+    .status{display:inline-block;width:0.8rem;height:0.8rem;border-radius:50%;vertical-align:middle;margin-right:0.4rem}
+    .status.ok{background:#28a745}
+    .status.no{background:#dc3545}
   </style>
 </head>
 <body>
   <div id="app">Loading …</div>
 
-  <!-- CSV parser library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- Main logic (calculations + rendering) -->
-  <script src="bar.js"></script>
+  <script>
+    const SHEET_ID = '1Vi7W4YksMjIfuO5sqtzIZJwOTClXsG8GXg6rHBczOwI';
+    const CURRENCY = '€';
+    const SHOT_ML = 40;
+    const REFRESH_MS = 5 * 60 * 1000;
+    const SHEETS = { INVENTORY: 'Inventory', RECIPES: 'DrinkList' };
+
+    const csvUrl = sheet => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
+    const sanitise = s => (s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const slug = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+    const toNum = v => parseFloat(String(v || '').replace(/[^0-9.,\-]/g, '').replace(/\s+/g, '').replace(',', '.')) || 0;
+    const toBool = v => /^(true|1|yes|y)$/i.test(String(v).trim());
+
+    const detectCol = (row, regex) => Object.keys(row).find(k => regex.test(k.trim()));
+    const detectStockCol = rows => detectCol(rows[0], /(stock|have|available)/i);
+
+    async function fetchCsv(sheet) {
+      const r = await fetch(csvUrl(sheet));
+      if (!r.ok) throw new Error(`Cannot load sheet “${sheet}” (${r.status})`);
+      return Papa.parse((await r.text()).trim(), { header: true }).data;
+    }
+
+    async function loadBarData() {
+      const [invRaw, recRaw] = await Promise.all([
+        fetchCsv(SHEETS.INVENTORY),
+        fetchCsv(SHEETS.RECIPES)
+      ]);
+
+      const abvKey = detectCol(invRaw[0], /alkohol|abv/i);
+      const priceKey = detectCol(invRaw[0], /cena.*\/l|price.*\/l/i);
+      const stockKey = detectStockCol(invRaw);
+
+      const inventory = invRaw.filter(r => r.Name).map(r => {
+        const key = sanitise(r.Name);
+        const abvVal = toNum(r[abvKey]);
+        const abv = abvVal > 1 ? abvVal / 100 : abvVal;
+        const priceL = toNum(r[priceKey]);
+        return {
+          key,
+          label: r.Name.trim(),
+          abv,
+          pricePerMl: priceL / 1000,
+          inStock: stockKey ? toBool(r[stockKey]) : true
+        };
+      });
+      const invMap = Object.fromEntries(inventory.map(i => [i.key, i]));
+
+      const shots = inventory.filter(i => i.abv > 0.05).map(i => ({ name: i.label, price: +(i.pricePerMl * SHOT_ML).toFixed(2) })).sort((a, b) => a.name.localeCompare(b.name));
+
+      const drinkNames = Object.keys(recRaw[0]).filter(k => k !== 'Name' && k && !k.startsWith('_') && !/Unnamed/i.test(k));
+      const longRows = [];
+      recRaw.forEach(row => {
+        const ingKey = sanitise(row.Name);
+        if (!ingKey || !invMap[ingKey]) return;
+        drinkNames.forEach(drink => {
+          const ml = toNum(row[drink]);
+          if (ml > 0) longRows.push({ Drink: drink, key: ingKey, Ml: ml });
+        });
+      });
+
+      const drinks = {};
+      longRows.forEach(r => {
+        const inv = invMap[r.key];
+        const d = drinks[r.Drink] ??= { name: r.Drink, vol: 0, alcPct: 0, price: 0, available: true, missing: [] };
+        d.vol += r.Ml;
+        d.price += r.Ml * inv.pricePerMl;
+        d.alcPct += r.Ml * inv.abv;
+        if (!inv.inStock) {
+          d.available = false;
+          d.missing.push(inv.label);
+        }
+      });
+
+      Object.values(drinks).forEach(d => {
+        d.alcPct = d.vol ? +(d.alcPct / d.vol * 100).toFixed(2) : 0;
+        d.price = +d.price.toFixed(2);
+      });
+
+      return { drinks, shots };
+    }
+
+    const statusDot = d => `<span class="status ${d.available ? 'ok' : 'no'}" title="${d.available ? 'All ingredients in stock' : 'Missing: ' + d.missing.join(', ')}"></span>`;
+
+    function renderList(drinksMap, shots) {
+      const drinks = Object.values(drinksMap).sort((a, b) => a.name.localeCompare(b.name));
+      const app = document.getElementById('app');
+      app.innerHTML = '<h1>Drinks</h1>';
+
+      const tbl = document.createElement('table');
+      tbl.innerHTML = '<thead><tr><th>Drink</th><th></th><th>Price</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      drinks.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><a href="?drink=${encodeURIComponent(d.name)}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      app.appendChild(tbl);
+
+      if (shots.length) {
+        app.insertAdjacentHTML('beforeend', '<h2>Shots</h2>');
+        const sTbl = document.createElement('table');
+        sTbl.innerHTML = '<thead><tr><th>Shot (40 ml)</th><th>Price</th></tr></thead>';
+        const sBody = document.createElement('tbody');
+        shots.forEach(s => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${s.name}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+          sBody.appendChild(tr);
+        });
+        sTbl.appendChild(sBody);
+        app.appendChild(sTbl);
+      }
+    }
+
+    function renderDetail(d) {
+      const app = document.getElementById('app');
+      app.innerHTML = `<a class="back" href="./">← Back to list</a><h1>${d.name}</h1>`;
+      const img = document.createElement('img');
+      img.src = `images/${slug(d.name)}.jpg`;
+      img.alt = d.name;
+      img.onerror = () => img.remove();
+      app.appendChild(img);
+      app.insertAdjacentHTML('beforeend', `<p>${statusDot(d)}Available<br>Volume: <strong>${d.vol} ml</strong><br>Alcohol: <strong>${d.alcPct}% ABV</strong><br>Price: <strong>${CURRENCY}${d.price.toFixed(2)}</strong></p>`);
+    }
+
+    async function render() {
+      try {
+        const { drinks, shots } = await loadBarData();
+        const qs = new URLSearchParams(location.search).get('drink');
+        if (qs && drinks[qs])
+          renderDetail(drinks[qs]);
+        else
+          renderList(drinks, shots);
+      } catch (e) {
+        document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
+        console.error(e);
+      }
+    }
+
+    render();
+    setInterval(render, REFRESH_MS);
+  </script>
 </body>
 </html>
