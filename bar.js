@@ -39,7 +39,7 @@ async function fetchCsv(sheet){
 }
 
 function detectCol(row, regex){
-  return Object.keys(row).find(k => regex.test(k));
+  return Object.keys(row).find(k => regex.test(k.trim()));
 }
 
 async function loadBarData(){
