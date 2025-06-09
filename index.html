@@ -51,7 +51,7 @@
     /* SORT STATE */
     let sortKey = 'name'; // 'name', 'availability', or 'price'
     let sortAsc = true;
-    let shotSortKey = 'name'; // for shots: 'name', 'availability', 'price'
+    let shotSortKey = 'name';
     let shotSortAsc = true;
 
     /* HELPERS */
@@ -119,17 +119,15 @@
       const app = document.getElementById('app');
       app.innerHTML = `<h1>${t('drinks')}</h1>`;
 
-      // -- Drinks Table --
+      // Drinks Table
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const trHead = document.createElement('tr');
-
-      // Name
       ['name','availability','price'].forEach(key => {
         const th = document.createElement('th');
-        let label = t(key==='name'? 'drinks' : key);
+        const label = key==='name'? t('drinks') : key=== 'availability'? t('availability') : t('price');
         const active = sortKey===key;
-        const indicator = active ? (sortAsc? '▲':'▼') : '•';
+        const indicator = active? (sortAsc? '▲':'▼') : '';
         th.innerHTML = `${label}<span class="sort-indicator">${indicator}</span>`;
         th.style.textAlign = key==='availability'? 'center':'left';
         th.addEventListener('click', ()=>{
@@ -143,28 +141,38 @@
       table.appendChild(thead);
 
       const tbody = document.createElement('tbody');
-      const list = Object.values(drinks).slice();
-      list.sort((a,b) => {
-        if(sortKey==='name') return sortAsc
+      let list = Object.values(drinks).slice();
+      if(sortKey==='availability') {
+        const availList = list.filter(d=>d.available).map(d=>d);
+        const notList = list.filter(d=>!d.available).map(d=>d);
+        availList.sort((a,b)=> sortAsc
           ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-          : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
-        if(sortKey==='availability') return sortAsc
-          ? (b.available?1:0) - (a.available?1:0)
-          : (a.available?1:0) - (b.available?1:0);
-        // price
-        return sortAsc
-          ? a.price - b.price
-          : b.price - a.price;
-      });
+          : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
+        );
+        notList.sort((a,b)=> sortAsc
+          ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+          : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
+        );
+        list = [...availList, ...notList];
+      } else {
+        list.sort((a,b)=>{
+          if(sortKey==='name') return sortAsc
+            ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+            : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+          return sortAsc
+            ? a.price - b.price
+            : b.price - a.price;
+        });
+      }
       list.forEach(d=>{
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><a data-drink=\"${d.name}\">${d.name}</a></td><td style=\"text-align:center\">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
+        tr.innerHTML = `<td><a data-drink="${d.name}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
       app.appendChild(table);
 
-      // -- Shots Table --
+      // Shots Table
       if(shots.length) {
         app.insertAdjacentHTML('beforeend', `<h2>${t('shots')}</h2>`);
         const st = document.createElement('table');
@@ -172,9 +180,9 @@
         const sr = document.createElement('tr');
         ['name','availability','price'].forEach(key => {
           const th = document.createElement('th');
-          let label = key==='name'? t('shots') : t(key);
+          const label = key==='name'? t('shots') : key=== 'availability'? t('availability') : t('price');
           const active = shotSortKey===key;
-          const indicator = active ? (shotSortAsc? '▲':'▼') : '•';
+          const indicator = active? (shotSortAsc? '▲':'▼') : '';
           th.innerHTML = `${label}<span class="sort-indicator">${indicator}</span>`;
           th.style.textAlign = key==='availability'? 'center':'left';
           th.addEventListener('click', ()=>{
@@ -188,21 +196,32 @@
         st.appendChild(sHead);
 
         const sb = document.createElement('tbody');
-        const sList = shots.slice();
-        sList.sort((a,b)=>{
-          if(shotSortKey==='name') return shotSortAsc
+        let sList = shots.slice();
+        if(shotSortKey==='availability') {
+          const sAvail = sList.filter(s=>s.available);
+          const sNot   = sList.filter(s=>!s.available);
+          sAvail.sort((a,b)=> shotSortAsc
             ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-            : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
-          if(shotSortKey==='availability') return shotSortAsc
-            ? (b.available?1:0) - (a.available?1:0)
-            : (a.available?1:0) - (b.available?1:0);
-          return shotSortAsc
-            ? a.price - b.price
-            : b.price - a.price;
-        });
+            : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
+          );
+          sNot.sort((a,b)=> shotSortAsc
+            ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+            : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
+          );
+          sList = [...sAvail, ...sNot];
+        } else {
+          sList.sort((a,b)=>{
+            if(shotSortKey==='name') return shotSortAsc
+              ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+              : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+            return shotSortAsc
+              ? a.price - b.price
+              : b.price - a.price;
+          });
+        }
         sList.forEach(s=>{
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${s.name}</td><td style=\"text-align:center\">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+          tr.innerHTML = `<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
           sb.appendChild(tr);
         });
         st.appendChild(sb);
