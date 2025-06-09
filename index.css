@@ -1,0 +1,158 @@
+/* Modern CSS overhaul for Home Bar UI */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --accent: #0d6efd;
+  --accent-light: #e8f0fe;
+  --bg: #ffffff;
+  --bg-alt: #f6f8fa;
+  --text: #202124;
+  --border: #e2e8f0;
+  --radius: 0.75rem;
+  --shadow: 0 2px 8px rgba(0, 0, 0, .04);
+  --transition: all .2s ease;
+}
+
+/* Dark‑mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111315;
+    --bg-alt: #1b1d1f;
+    --text: #e9eef5;
+    --border: #2a2d31;
+    --accent-light: rgba(13, 110, 253, .15);
+    --shadow: 0 2px 6px rgba(0, 0, 0, .6);
+  }
+}
+
+html { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+
+body {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 2rem 1rem;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ─────────────────────────── Language switch */
+.lang-switch {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  gap: .5rem;
+  z-index: 10;
+}
+.lang-switch img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  filter: grayscale(50%);
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+}
+.lang-switch img:hover { transform: translateY(-2px) scale(1.05); }
+.lang-switch img.active {
+  border-color: var(--accent);
+  filter: none;
+}
+
+/* ─────────────────────────── Headings */
+h1, h2 { font-weight: 600; margin: 0 0 1rem; }
+h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); }
+h2 { font-size: clamp(1.25rem, 3vw, 1.5rem); margin-top: 2.5rem; }
+
+/* ─────────────────────────── Links */
+a { color: var(--accent); text-decoration: none; transition: var(--transition); }
+a:hover { text-decoration: underline; }
+
+/* ─────────────────────────── Back link */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .35rem .65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-alt);
+  font-size: .875rem;
+  box-shadow: var(--shadow);
+}
+.back:hover { background: var(--accent-light); border-color: var(--accent-light); }
+
+/* ─────────────────────────── Tables */
+.table-wrapper { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.25rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+thead { background: var(--bg-alt); }
+
+th, td {
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  text-align: left;
+  font-weight: 500;
+  user-select: none;
+  cursor: pointer;
+}
+
+th .sort-indicator { font-size: .75rem; }
+
+tbody tr:hover { background: var(--accent-light); }
+
+tbody tr:last-child td { border-bottom: none; }
+
+/* ─────────────────────────── Status dots */
+.status {
+  width: .9rem;
+  height: .9rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status.ok { background: #2ecc71; }
+.status.no { background: #ff4757; }
+
+.status::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  animation: pulse 2s infinite;
+  opacity: .25;
+}
+
+@keyframes pulse {
+  0%   { transform: scale(.8); }
+  50%  { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(.8); opacity: 0; }
+}
+
+/* ─────────────────────────── Alcohol‑free icon */
+.af-icon { height: 1.1em; margin-left: .4em; vertical-align: middle; opacity: .75; }
+
+/* ─────────────────────────── Responsive table */
+@media (max-width: 640px) {
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
+/* ─────────────────────────── Fade‑in effect */
+#app { opacity: 0; animation: fadeIn .4s forwards; }
+@keyframes fadeIn { to { opacity: 1; } }
