@@ -24,41 +24,55 @@
 </head>
 <body>
   <div class="lang-switch">
-    <img id="lang-en" src="img/flag-en.png" alt="EN" class="active">
-    <img id="lang-cs" src="img/flag-cs.png" alt="CS">
+    <img data-lang="en" src="./img/flag-en.png" alt="EN" class="active">
+    <img data-lang="cs" src="./img/flag-cs.png" alt="CS">
   </div>
   <div id="app"></div>
 
   <script>
     const CURRENCY = '€';
     let lang = 'en';
-    let barData = null;
+    let barData;
 
     async function loadData() {
-      const inventory = await fetch('bar-data.json').then(r => r.json());
-      const texts = await fetch('i18n.json').then(r => r.json());
-      const drinks = Object.fromEntries(
-        inventory.filter(i => i.abv <= 0.05).map(i => [
-          i.name,
-          {
+      const [inventoryRes, textsRes] = await Promise.all([
+        fetch('./bar-data.json'),
+        fetch('./i18n.json')
+      ]);
+      if (!inventoryRes.ok || !textsRes.ok) throw new Error('Failed to load data');
+      const inventory = await inventoryRes.json();
+      const texts = await textsRes.json();
+
+      const drinks = {};
+      inventory.forEach(i => {
+        const abvPct = +(i.abv * 100).toFixed(1);
+        if (abvPct <= 5) {
+          drinks[i.name] = {
             name: i.name,
             volumeMl: i.volumeMl,
-            alcPercent: +(i.abv * 100).toFixed(1),
+            alcPercent: abvPct,
             price: +(i.pricePerMl * i.volumeMl).toFixed(2),
             available: i.inStock,
-            description: i.description
-          }
-        ])
-      );
+            description: i.description,
+            ingredients: i.ingredients || []
+          };
+        }
+      });
+
       const shots = inventory
-        .filter(i => i.abv > 0.05)
+        .filter(i => +(i.abv * 100).toFixed(1) > 5)
         .map(i => ({
           name: i.name,
           alcPercent: +(i.abv * 100).toFixed(1),
           price: +(i.pricePerMl * 40).toFixed(2),
           available: i.inStock
         }));
+
       return { drinks, shots, texts };
+    }
+
+    function t(key) {
+      return barData.texts[lang]?.[key] || key;
     }
 
     function statusDot(d) {
@@ -66,22 +80,11 @@
       return `<span style="display:inline-block;width:0.75rem;height:0.75rem;background:${color};border-radius:50%;"></span>`;
     }
 
-    function t(key) {
-      if (!barData) return key;
-      return barData.texts[lang][key] || key;
-    }
-
-    async function init() {
-      barData = await loadData();
-      router();
-    }
-
     function renderList() {
       const { drinks, shots } = barData;
       const app = document.getElementById('app');
       app.innerHTML = `<h1>${t('drinks')}</h1>`;
 
-      // --- seznam drinků ---
       const table = document.createElement('table');
       table.innerHTML = `
         <thead>
@@ -96,17 +99,12 @@
       Object.values(drinks)
         .sort((a, b) => a.name.localeCompare(b.name))
         .forEach(d => {
-          // pokud je nealko, přidáme ikonu
           const icon = d.alcPercent === 0
-            ? '<img src="img/AlcoholFree.png" alt="Nealko" ' +
-              'style="width:16px; vertical-align:middle; margin-left:4px;">'
+            ? '<img src="./img/AlcoholFree.png" alt="Nealko" style="width:16px;vertical-align:middle;margin-left:4px;">'
             : '';
-
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>
-              <a data-drink="${d.name}">${d.name}${icon}</a>
-            </td>
+            <td><a data-drink="${d.name}">${d.name}${icon}</a></td>
             <td style="text-align:center">${statusDot(d)}</td>
             <td>${CURRENCY}${d.price.toFixed(2)}</td>
           `;
@@ -116,7 +114,6 @@
       table.appendChild(tbody);
       app.appendChild(table);
 
-      // --- seznam shotů (beze změny) ---
       if (shots.length) {
         app.insertAdjacentHTML('beforeend', `<h2>${t('shots')}</h2>`);
         const st = document.createElement('table');
@@ -132,7 +129,7 @@
         shots.forEach(s => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><a data-shot="${s.name}">${s.name}</a></td>
+            <td><a data-drink="${s.name}">${s.name}</a></td>
             <td style="text-align:center">${statusDot(s)}</td>
             <td>${CURRENCY}${s.price.toFixed(2)}</td>
           `;
@@ -145,99 +142,75 @@
 
     function renderDetails(name) {
       const d = barData.drinks[name];
+      if (!d) return renderList();
       const app = document.getElementById('app');
-
-      // ikona pro nealko i zde
       const icon = d.alcPercent === 0
-        ? '<img src="img/AlcoholFree.png" alt="Nealko" ' +
-          'style="width:20px; vertical-align:middle; margin-left:8px;">'
+        ? '<img src="./img/AlcoholFree.png" alt="Nealko" style="width:20px;vertical-align:middle;margin-left:8px;">'
         : '';
-
       app.innerHTML = `
         <div class="back"><a data-back>${t('back')}</a></div>
         <h1>${d.name}${icon}</h1>
-        <p>${statusDot(d)} <strong>${
-          d.available ? t('available') : t('notAvailable')
-        }</strong></p>
+        <p>${statusDot(d)} <strong>${d.available ? t('available') : t('notAvailable')}</strong></p>
         <p>${t('volume')}: ${d.volumeMl} ml</p>
         <p>${t('abv')}: ${d.alcPercent}%</p>
         <p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>
       `;
 
-      // tabulka detailů shotů, přísad apod. (původní kód beze změny)
-      const table = document.createElement('table');
-      table.innerHTML = `
-        <thead>
-          <tr>
-            <th>${t('ingredient')}</th>
-            <th style="text-align:center">${t('amount')}</th>
-          </tr>
-        </thead>`;
-      const tbody = document.createElement('tbody');
-      d.ingredients.forEach(ing => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${ing.name}</td>
-          <td style="text-align:center">${ing.amountMl} ml</td>
-        `;
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      app.appendChild(table);
-
-      // popis (pokud existuje)
-      const desc = d.description[lang];
-      if (desc) {
-        const descEl = document.createElement('p');
-        descEl.innerHTML = `<strong>${t('description')}:</strong> ${desc}`;
-        app.appendChild(descEl);
+      if (d.ingredients.length) {
+        const table = document.createElement('table');
+        table.innerHTML = `
+          <thead><tr><th>${t('ingredient')}</th><th style="text-align:center">${t('amount')}</th></tr></thead>`;
+        const tbody = document.createElement('tbody');
+        d.ingredients.forEach(ing => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${ing.name}</td><td style="text-align:center">${ing.amountMl} ml</td>`;
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        app.appendChild(table);
       }
+
+      const desc = d.description?.[lang];
+      if (desc) app.insertAdjacentHTML('beforeend', `<p><strong>${t('description')}:</strong> ${desc}</p>`);
     }
 
-    const router = () => {
-      const params = new URLSearchParams(location.search);
+    function router() {
+      const params = new URLSearchParams(window.location.search);
       const drink = params.get('drink');
-      if (drink && barData && barData.drinks[drink]) {
-        renderDetails(drink);
-      } else {
-        renderList();
-      }
-    };
+      return drink ? renderDetails(decodeURIComponent(drink)) : renderList();
+    }
 
-    document.body.addEventListener('click', e => {
-      const a = e.target.closest('a[data-drink], a[data-shot], a[data-back]');
-      if (!a) return;
-      e.preventDefault();
-      if (a.dataset.back !== undefined) {
-        history.pushState({}, '', location.pathname);
-      } else if (a.dataset.drink) {
-        history.pushState({}, '', `?drink=${encodeURIComponent(a.dataset.drink)}`);
-      } else if (a.dataset.shot) {
-        // případně handle shot detail
-      }
-      router();
-    });
+    function setupEventListeners() {
+      document.body.addEventListener('click', e => {
+        const a = e.target.closest('a[data-drink], a[data-back]');
+        if (!a) return;
+        e.preventDefault();
+        if (a.dataset.back !== undefined) history.pushState({}, '', window.location.pathname);
+        else history.pushState({}, '', `?drink=${encodeURIComponent(a.dataset.drink)}`);
+        router();
+      });
 
-    document.getElementById('lang-en').addEventListener('click', () => {
-      lang = 'en';
-      document.getElementById('lang-en').classList.add('active');
-      document.getElementById('lang-cs').classList.remove('active');
-      router();
-    });
-    document.getElementById('lang-cs').addEventListener('click', () => {
-      lang = 'cs';
-      document.getElementById('lang-cs').classList.add('active');
-      document.getElementById('lang-en').classList.remove('active');
-      router();
-    });
+      document.querySelectorAll('.lang-switch img').forEach(img => {
+        img.addEventListener('click', () => {
+          document.querySelectorAll('.lang-switch img').forEach(i => i.classList.remove('active'));
+          img.classList.add('active');
+          lang = img.dataset.lang;
+          document.documentElement.lang = lang;
+          router();
+        });
+      });
+
+      window.addEventListener('popstate', router);
+    }
 
     (async () => {
       try {
-        document.getElementById('app').textContent = '';
-        await init();
-      } catch (e) {
-        document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
-        console.error(e);
+        barData = await loadData();
+        setupEventListeners();
+        router();
+      } catch (err) {
+        document.getElementById('app').innerHTML = `<p class="err">${err.message}</p>`;
+        console.error(err);
       }
     })();
   </script>
