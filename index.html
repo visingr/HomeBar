@@ -24,6 +24,7 @@
     .status.ok { background: #28a745; }
     .status.no { background: #dc3545; }
     .sort-indicator { font-size: 0.6rem; margin-left: 0.2rem; }
+    .af-icon { height: 1em; vertical-align: middle; margin-left: 0.3em; }
   </style>
 </head>
 <body>
@@ -49,14 +50,14 @@
     let lang = 'en'; function t(key) { return dict[lang][key]; }
 
     /* SORT STATE */
-    let sortKey = 'name'; // 'name', 'availability', or 'price'
+    let sortKey = 'name'; // 'name', 'availability', 'price'
     let sortAsc = true;
     let shotSortKey = 'name';
     let shotSortAsc = true;
 
     /* HELPERS */
     const csvUrl = sheet => `${PUB_BASE}/pub?gid=${sheet.gid}&single=true&output=csv`;
-    const toNum  = v => typeof v==='number'? v : (!v?0: parseFloat(String(v).replace(/%/g,'').replace(/,/g,'.'))||0);
+    const toNum  = v => typeof v === 'number' ? v : (!v ? 0 : parseFloat(String(v).replace(/%/g, '').replace(/,/g, '.')) || 0);
     const toBool = v => /^(y|yes|true|1)$/i.test(String(v).trim());
 
     async function fetchCsv(sheet) {
@@ -69,29 +70,29 @@
       const invRaw = Papa.parse(invText.trim(), { header: true }).data;
       const recRaw = Papa.parse(recText.trim(), { header: true }).data;
 
-      const detect = (row, rx) => Object.keys(row).find(k=> rx.test(k));
+      const detect = (row, rx) => Object.keys(row).find(k => rx.test(k));
       const stockKey = detect(invRaw[0], /(stock|have|available|skladem)/i);
       const abvKey   = detect(invRaw[0], /(alkohol|abv)/i) || 'Alkohol';
       const priceKey = detect(invRaw[0], /(cena.*\/l|price.*\/l)/i) || 'Cena/L';
 
-      const inventory = invRaw.filter(r=>r.Name).map(r=>{
+      const inventory = invRaw.filter(r => r.Name).map(r => {
         const a = toNum(r[abvKey]);
-        return { name: r.Name.trim(), abv: a>1? a/100 : a, pricePerMl: toNum(r[priceKey])/1000, inStock: stockKey? toBool(r[stockKey]): true };
+        return { name: r.Name.trim(), abv: a > 1 ? a/100 : a, pricePerMl: toNum(r[priceKey])/1000, inStock: stockKey ? toBool(r[stockKey]) : true };
       });
-      const invMap = Object.fromEntries(inventory.map(i=>[i.name,i]));
-      const shots  = inventory.filter(i=>i.abv>0.05).map(i=>({ name: i.name, price: +(i.pricePerMl*40).toFixed(2), available: i.inStock }));
+      const invMap = Object.fromEntries(inventory.map(i => [i.name,i]));
+      const shots  = inventory.filter(i => i.abv > 0.05).map(i => ({ name: i.name, price: +(i.pricePerMl*40).toFixed(2), available: i.inStock }));
 
-      const names = Object.keys(recRaw[0]).filter(k=> k!=='Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
-      const descRows = recRaw.filter((r,idx)=> idx>0 && !r.Name && Object.keys(r).some(k=>k!=='Name'&&r[k]));
+      const names = Object.keys(recRaw[0]).filter(k => k!=='Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
+      const descRows = recRaw.filter((r, idx) => idx>0 && !r.Name && Object.keys(r).some(k=>k!=='Name' && r[k]));
       const descRowCs = descRows[0]||{}, descRowEn = descRows[1]||{};
 
       const drinks = {};
-      recRaw.filter(r=>r.Name).forEach(r=>{
+      recRaw.filter(r => r.Name).forEach(r => {
         const iname = r.Name.trim(); if(!invMap[iname]) return;
-        names.forEach(dn=>{
+        names.forEach(dn => {
           const ml = toNum(r[dn]); if(ml<=0) return;
           const inv = invMap[iname];
-          if(!drinks[dn]) drinks[dn] = { name: dn, volumeMl: 0, alcPercent: 0, price: 0, available: true, missing: [], parts: [], description: { en: descRowEn[dn]||'', cs: descRowCs[dn]||'' } };
+          if(!drinks[dn]) drinks[dn] = { name: dn, volumeMl:0, alcPercent:0, price:0, available:true, missing:[], parts:[], description:{ en:descRowEn[dn]||'', cs:descRowCs[dn]||'' }};
           const d = drinks[dn];
           d.volumeMl += ml;
           d.price += ml * inv.pricePerMl;
@@ -100,14 +101,14 @@
           if(!inv.inStock) { d.available = false; if(!d.missing.includes(iname)) d.missing.push(iname); }
         });
       });
-      Object.values(drinks).forEach(d=>{ d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2); d.price = +d.price.toFixed(2); d.volumeMl = +d.volumeMl.toFixed(0); });
+      Object.values(drinks).forEach(d => { d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2); d.price=+d.price.toFixed(2); d.volumeMl=+d.volumeMl.toFixed(0); });
 
       return { drinks, shots };
     }
 
     function dot(avail, missing=[]) {
-      const cls = avail? 'ok':'no';
-      const title = avail? t('available') : missing.length? `Missing: ${missing.join(', ')}` : t('notAvailable');
+      const cls = avail ? 'ok' : 'no';
+      const title = avail ? t('available') : missing.length ? `Missing: ${missing.join(', ')}` : t('notAvailable');
       return `<span class="status ${cls}" title="${title}"></span>`;
     }
     function statusDot(d) { return dot(d.available, d.missing); }
@@ -125,14 +126,13 @@
       const trHead = document.createElement('tr');
       ['name','availability','price'].forEach(key => {
         const th = document.createElement('th');
-        const label = key==='name'? t('drinks') : key=== 'availability'? t('availability') : t('price');
+        const label = key==='name' ? t('drinks') : key==='availability' ? t('availability') : t('price');
         const active = sortKey===key;
-        const indicator = active? (sortAsc? '▲':'▼') : '';
+        const indicator = active ? (sortAsc ? '▲' : '▼') : '';
         th.innerHTML = `${label}<span class="sort-indicator">${indicator}</span>`;
-        th.style.textAlign = key==='availability'? 'center':'left';
+        th.style.textAlign = key==='availability' ? 'center' : 'left';
         th.addEventListener('click', ()=>{
-          if(sortKey===key) sortAsc = !sortAsc;
-          else { sortKey = key; sortAsc = true; }
+          if(sortKey===key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = true; }
           renderList();
         });
         trHead.appendChild(th);
@@ -143,30 +143,33 @@
       const tbody = document.createElement('tbody');
       let list = Object.values(drinks).slice();
       if(sortKey==='availability') {
-        const availList = list.filter(d=>d.available).map(d=>d);
-        const notList = list.filter(d=>!d.available).map(d=>d);
-        availList.sort((a,b)=> sortAsc
+        const availList = list.filter(d=>d.available);
+        const notList   = list.filter(d=>!d.available);
+        [availList, notList].forEach(arr => arr.sort((a,b)=> sortAsc
           ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
           : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-        );
-        notList.sort((a,b)=> sortAsc
-          ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-          : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-        );
+        ));
         list = [...availList, ...notList];
       } else {
-        list.sort((a,b)=>{
+        list.sort((a,b)=> {
           if(sortKey==='name') return sortAsc
             ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
             : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
-          return sortAsc
-            ? a.price - b.price
-            : b.price - a.price;
+          return sortAsc ? a.price - b.price : b.price - a.price;
         });
       }
-      list.forEach(d=>{
+
+      list.forEach(d => {
+        const isAF = d.alcPercent < 0.1;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><a data-drink="${d.name}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
+        tr.innerHTML = `
+          <td>
+            <a data-drink="${d.name}">${d.name}</a>
+            ${isAF ? '<img src="img/AlcoholFree.png" alt="Alcohol Free" class="af-icon">' : ''}
+          </td>
+          <td style="text-align:center">${statusDot(d)}</td>
+          <td>${CURRENCY}${d.price.toFixed(2)}</td>
+        `;
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
@@ -180,14 +183,13 @@
         const sr = document.createElement('tr');
         ['name','availability','price'].forEach(key => {
           const th = document.createElement('th');
-          const label = key==='name'? t('shots') : key=== 'availability'? t('availability') : t('price');
+          const label = key==='name' ? t('shots') : key==='availability' ? t('availability') : t('price');
           const active = shotSortKey===key;
-          const indicator = active? (shotSortAsc? '▲':'▼') : '';
+          const indicator = active ? (shotSortAsc ? '▲' : '▼') : '';
           th.innerHTML = `${label}<span class="sort-indicator">${indicator}</span>`;
-          th.style.textAlign = key==='availability'? 'center':'left';
+          th.style.textAlign = key==='availability' ? 'center' : 'left';
           th.addEventListener('click', ()=>{
-            if(shotSortKey===key) shotSortAsc = !shotSortAsc;
-            else { shotSortKey = key; shotSortAsc = true; }
+            if(shotSortKey===key) shotSortAsc = !shotSortAsc; else { shotSortKey = key; shotSortAsc = true; }
             renderList();
           });
           sr.appendChild(th);
@@ -200,28 +202,26 @@
         if(shotSortKey==='availability') {
           const sAvail = sList.filter(s=>s.available);
           const sNot   = sList.filter(s=>!s.available);
-          sAvail.sort((a,b)=> shotSortAsc
+          [sAvail, sNot].forEach(arr => arr.sort((a,b)=> shotSortAsc
             ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
             : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-          );
-          sNot.sort((a,b)=> shotSortAsc
-            ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-            : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-          );
+          ));
           sList = [...sAvail, ...sNot];
         } else {
-          sList.sort((a,b)=>{
+          sList.sort((a,b)=> {
             if(shotSortKey==='name') return shotSortAsc
               ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
               : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
-            return shotSortAsc
-              ? a.price - b.price
-              : b.price - a.price;
+            return shotSortAsc ? a.price - b.price : b.price - a.price;
           });
         }
-        sList.forEach(s=>{
+        sList.forEach(s => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+          tr.innerHTML = `
+            <td>${s.name}</td>
+            <td style="text-align:center">${dot(s.available)}</td>
+            <td>${CURRENCY}${s.price.toFixed(2)}</td>
+          `;
           sb.appendChild(tr);
         });
         st.appendChild(sb);
@@ -232,15 +232,14 @@
     function renderDetails(name) {
       const d = barData.drinks[name];
       const app = document.getElementById('app');
-      app.innerHTML = `<div class=\"back\"><a data-back>${t('back')}</a></div><h1>${d.name}</h1><p>${statusDot(d)} <strong>${d.available? t('available'): t('notAvailable')}</strong></p><p>${t('volume')}: ${d.volumeMl} ml</p><p>${t('abv')}: ${d.alcPercent}%</p><p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>`;
+      app.innerHTML = `<div class="back"><a data-back>${t('back')}</a></div><h1>${d.name}</h1><p>${statusDot(d)} <strong>${d.available? t('available'): t('notAvailable')}</strong></p><p>${t('volume')}: ${d.volumeMl} ml</p><p>${t('abv')}: ${d.alcPercent}%</p><p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>`;
       const table = document.createElement('table');
-      table.innerHTML = `<thead><tr><th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style=\"text-align:center\">${t('inStock')}</th></tr></thead>`;
+      table.innerHTML = `<thead><tr><th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style="text-align:center">${t('inStock')}</th></tr></thead>`;
       const tbody = document.createElement('tbody');
-      d.parts.forEach(p=>{ const tr = document.createElement('tr'); tr.innerHTML = `<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style=\"text-align:center\">${dot(p.inStock)}</td>`; tbody.appendChild(tr); });
+      d.parts.forEach(p=>{ const tr = document.createElement('tr'); tr.innerHTML = `<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style="text-align:center">${dot(p.inStock)}</td>`; tbody.appendChild(tr); });
       table.appendChild(tbody);
       app.appendChild(table);
-      const desc = d.description[lang];
-      if(desc) app.insertAdjacentHTML('beforeend', `<p><strong>${t('description')}:</strong> ${desc}</p>`);
+      const desc = d.description[lang]; if(desc) app.insertAdjacentHTML('beforeend', `<p><strong>${t('description')}:</strong> ${desc}</p>`);
     }
 
     function router() { const params = new URLSearchParams(location.search); const drink = params.get('drink'); if(drink && barData.drinks[drink]) renderDetails(drink); else renderList(); }
