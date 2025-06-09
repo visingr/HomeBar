@@ -24,14 +24,15 @@
 </head>
 <body>
   <div class="lang-switch">
-    <img id="lang-en" src="Lang/flag-en.png" alt="EN" class="active">
-    <img id="lang-cs" src="Lang/flag-cs.png" alt="CS">
+    <img id="lang-en" src="img/flag-en.png" alt="EN" class="active">
+    <img id="lang-cs" src="img/flag-cs.png" alt="CS">
   </div>
   <div id="app"></div>
 
   <script>
     const CURRENCY = '€';
     let lang = 'en';
+    let barData = null;
 
     async function loadData() {
       const inventory = await fetch('bar-data.json').then(r => r.json());
@@ -62,16 +63,16 @@
 
     function statusDot(d) {
       const color = d.available ? 'green' : 'red';
-      return `<span style="display:inline-block;width:0.75rem;height:0.75rem;
-              background:${color};border-radius:50%;"></span>`;
+      return `<span style="display:inline-block;width:0.75rem;height:0.75rem;background:${color};border-radius:50%;"></span>`;
     }
 
     function t(key) {
+      if (!barData) return key;
       return barData.texts[lang][key] || key;
     }
 
     async function init() {
-      window.barData = await loadData();
+      barData = await loadData();
       router();
     }
 
@@ -196,7 +197,7 @@
     const router = () => {
       const params = new URLSearchParams(location.search);
       const drink = params.get('drink');
-      if (drink && barData.drinks[drink]) {
+      if (drink && barData && barData.drinks[drink]) {
         renderDetails(drink);
       } else {
         renderList();
@@ -232,9 +233,7 @@
 
     (async () => {
       try {
-        document.getElementById('app').textContent = barData
-          ? ''
-          : t('loading');
+        document.getElementById('app').textContent = '';
         await init();
       } catch (e) {
         document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
