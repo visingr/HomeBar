@@ -145,11 +145,19 @@
       if(sortKey==='availability') {
         const availList = list.filter(d=>d.available);
         const notList   = list.filter(d=>!d.available);
-        [availList, notList].forEach(arr => arr.sort((a,b)=> sortAsc
+        // sort both alphabetically
+        availList.sort((a,b)=> sortAsc
           ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
           : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-        ));
-        list = [...availList, ...notList];
+        );
+        notList.sort((a,b)=> sortAsc
+          ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+          : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
+        );
+        // when sortAsc: available first, then unavailable; when sortDesc: unavailable first
+        list = sortAsc
+          ? [...availList, ...notList]
+          : [...notList, ...availList];
       } else {
         list.sort((a,b)=> {
           if(sortKey==='name') return sortAsc
