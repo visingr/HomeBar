@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>More actions
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -49,12 +49,12 @@
     function t(key) { return dict[lang][key]; }
 
     /* HELPERS */
-    const csvUrl = sheet => `${PUB_BASE}/pub?gid=${sheet.gid}&single=true&output=csv`;
+    const csvUrl = sheet => ${PUB_BASE}/pub?gid=${sheet.gid}&single=true&output=csv;
     const toNum = v => typeof v === 'number' ? v : (!v ? 0 : parseFloat(String(v).replace(/%/g, '').replace(/,/g, '.')) || 0);
     const toBool = v => /^(y|yes|true|1)$/i.test(String(v).trim());
 
     async function fetchCsv(sheet) {
-      const res = await fetch(csvUrl(sheet)); if (!res.ok) throw new Error(`Cannot load GID ${sheet.gid}`);
+      const res = await fetch(csvUrl(sheet)); if (!res.ok) throw new Error(Cannot load GID ${sheet.gid});
       return res.text();
     }
 
@@ -81,141 +81,84 @@
 
       // recipes & descriptions
       const names = Object.keys(recRaw[0]).filter(k => k !== 'Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
+      const descRowCs = recRaw[997] || {};
+      const descRowEn = recRaw[998] || {};
+      // identify description rows by empty Name but other fields present
       const descRows = recRaw.filter((r, idx) => idx>0 && !r.Name && Object.keys(r).some(k => k!=='Name' && r[k]));
       const descRowCs = descRows[0] || {};
       const descRowEn = descRows[1] || {};
 
+      const names = Object.keys(recRaw[0]).filter(k => k!=='Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
       const drinks = {};
+      recRaw.forEach((r, i) => {
+        if (i < 1 || i >= 998) return;  // skip header and description rows
+        const iname = r.Name && r.Name.trim(); if (!iname || !invMap[iname]) return;
       recRaw.filter(r => r.Name).forEach(r => {
         const iname = r.Name.trim(); if (!invMap[iname]) return;
         names.forEach(dn => {
+          const ml = toNum(r[dn]); if (ml <= 0) return;
           const ml = toNum(r[dn]); if (ml<=0) return;
           const inv = invMap[iname];
-          if (!drinks[dn]) {
-            drinks[dn] = { name: dn, volumeMl: 0, alcPercent: 0, price: 0, available: true, missing: [], parts: [], description: { en: descRowEn[dn]||'', cs: descRowCs[dn]||'' } };
-          }
-          const d = drinks[dn];
-          d.volumeMl += ml;
-          d.price += ml * inv.pricePerMl;
-          d.alcPercent += ml * inv.abv;
+          const d = drinks[dn] ?? { name: dn, volumeMl: 0, alcPercent: 0, price: 0, available: true, missing: [], parts: [], description: { en: descRowEn[dn]||'', cs: descRowCs[dn]||'' } };
+          d.volumeMl += ml; d.price += ml*inv.pricePerMl; d.alcPercent += ml*inv.abv;
           d.parts.push({ ingredient: iname, ml, abv: +(inv.abv*100).toFixed(1), inStock: inv.inStock });
           if (!inv.inStock) { d.available = false; if (!d.missing.includes(iname)) d.missing.push(iname); }
+          const d = drinks[dn] ?? { name: dn, volumeMl:0, alcPercent:0, price:0, available:true, missing:[], parts:[], description:{en:descRowEn[dn]||'',cs:descRowCs[dn]||''} };
+          d.volumeMl += ml;
+          d.price += ml*inv.pricePerMl;
+          d.alcPercent += ml*inv.abv;
+          d.parts.push({ingredient: iname, ml, abv: +(inv.abv*100).toFixed(1), inStock: inv.inStock});
+          if(!inv.inStock) { d.available=false; if(!d.missing.includes(iname)) d.missing.push(iname); }
+          drinks[dn] = d;
         });
       });
-
-      Object.values(drinks).forEach(d => {
-        d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2);
-        d.price = +d.price.toFixed(2);
-        d.volumeMl = +d.volumeMl.toFixed(0);
-      });
-
+      Object.values(drinks).forEach(d => { d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2); d.price = +d.price.toFixed(2); d.volumeMl = +d.volumeMl.toFixed(0); });
       return { drinks, shots };
+      Object.values(drinks).forEach(d => { d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2); d.price=+d.price.toFixed(2); d.volumeMl=+d.volumeMl.toFixed(0); });
+      return {drinks,shots};
     }
 
-    /* RENDERERS */
-    function dot(avail, missing=[]) {
-      const cls = avail ? 'ok' : 'no';
-      const title = avail ? t('available') : missing.length ? `Missing: ${missing.join(', ')}` : t('notAvailable');
-      return `<span class="status ${cls}" title="${title}"></span>`;
-    }
+    function dot(avail, missing = []) { const cls = avail ? 'ok' : 'no'; const title = avail ? t('available') : missing.length ? Missing: ${missing.join(', ')} : t('notAvailable'); return <span class="status ${cls}" title="${title}"></span>; }
+    function dot(avail, missing=[]) { const cls=avail?'ok':'no'; const title=avail?t('available'):missing.length?Missing: ${missing.join(', ')}:t('notAvailable'); return <span class=\"status ${cls}\" title=\"${title}\"></span>; }
     function statusDot(d) { return dot(d.available, d.missing); }
 
+    let barData = {};
+
+    let barData={};
     function renderList() {
-      const { drinks, shots } = barData;
-      const app = document.getElementById('app');
-      app.innerHTML = `<h1>${t('drinks')}</h1>`;
-
-      const table = document.createElement('table');
-      table.innerHTML = `<thead><tr><th>${t('drinks')}</th><th style="text-align:center">${t('availability')}</th><th>${t('price')}</th></tr></thead>`;
-      const tbody = document.createElement('tbody');
-
-      Object.values(drinks).sort((a,b)=>a.name.localeCompare(b.name)).forEach(d => {
-        const icon = d.alcPercent === 0
-          ? '<img src="img/AlcoholFree.png" alt="Non-alcoholic" style="width:16px; vertical-align:middle; margin-left:4px;">'
-          : '';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td><a data-drink="${d.name}">${d.name}${icon}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>`;
-        tbody.appendChild(tr);
-      });
-
-      table.appendChild(tbody);
-      app.appendChild(table);
-
-      if (shots.length) {
-        app.insertAdjacentHTML('beforeend', `<h2>${t('shots')}</h2>`);
-        const st = document.createElement('table');
-        st.innerHTML = `<thead><tr><th>${t('shots')}</th><th style="text-align:center">${t('availability')}</th><th>${t('price')}</th></tr></thead>`;
-        const sb = document.createElement('tbody');
-        shots.forEach(s => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>`;
-          sb.appendChild(tr);
-        });
-        st.appendChild(sb);
-        app.appendChild(st);
-      }
+      const { drinks, shots } = barData; const app = document.getElementById('app'); app.innerHTML = <h1>${t('drinks')}</h1>;
+      const table = document.createElement('table'); table.innerHTML = <thead><tr><th>${t('drinks')}</th><th style="text-align:center">${t('availability')}</th><th>${t('price')}</th></tr></thead>;
+      const tbody = document.createElement('tbody'); Object.values(drinks).sort((a,b)=>a.name.localeCompare(b.name)).forEach(d => { const tr = document.createElement('tr'); tr.innerHTML = <td><a data-drink="${d.name}">${d.name}</a></td><td style="text-align:center">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>; tbody.appendChild(tr); });
+      table.appendChild(tbody); app.appendChild(table);
+      if (shots.length) { app.insertAdjacentHTML('beforeend', <h2>${t('shots')}</h2>); const st = document.createElement('table'); st.innerHTML = <thead><tr><th>${t('shots')}</th><th style="text-align:center">${t('availability')}</th><th>${t('price')}</th></tr></thead>; const sb = document.createElement('tbody'); shots.forEach(s => { const tr = document.createElement('tr'); tr.innerHTML = <td>${s.name}</td><td style="text-align:center">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>; sb.appendChild(tr); }); st.appendChild(sb); app.appendChild(st); }
+      const {drinks,shots}=barData; const app=document.getElementById('app'); app.innerHTML=<h1>${t('drinks')}</h1>;
+      const table=document.createElement('table'); table.innerHTML=<thead><tr><th>${t('drinks')}</th><th style=\"text-align:center\">${t('availability')}</th><th>${t('price')}</th></tr></thead>;
+      const tbody=document.createElement('tbody'); Object.values(drinks).sort((a,b)=>a.name.localeCompare(b.name)).forEach(d=>{ const tr=document.createElement('tr'); tr.innerHTML=<td><a data-drink=\"${d.name}\">${d.name}</a></td><td style=\"text-align:center\">${statusDot(d)}</td><td>${CURRENCY}${d.price.toFixed(2)}</td>; tbody.appendChild(tr); }); table.appendChild(tbody); app.appendChild(table);
+      if(shots.length){ app.insertAdjacentHTML('beforeend',<h2>${t('shots')}</h2>); const st=document.createElement('table'); st.innerHTML=<thead><tr><th>${t('shots')}</th><th style=\"text-align:center\">${t('availability')}</th><th>${t('price')}</th></tr></thead>; const sb=document.createElement('tbody'); shots.forEach(s=>{ const tr=document.createElement('tr'); tr.innerHTML=<td>${s.name}</td><td style=\"text-align:center\">${dot(s.available)}</td><td>${CURRENCY}${s.price.toFixed(2)}</td>; sb.appendChild(tr); }); st.appendChild(sb); app.appendChild(st); }
     }
 
     function renderDetails(name) {
-      const d = barData.drinks[name];
-      const app = document.getElementById('app');
-      app.innerHTML = `<div class="back"><a data-back>${t('back')}</a></div><h1>${d.name}</h1>`;
-      const icon = d.alcPercent === 0
-        ? '<img src="img/AlcoholFree.png" alt="Non-alcoholic" style="width:20px; vertical-align:middle; margin-left:8px;">'
-        : '';
-      app.querySelector('h1').innerHTML = `${d.name}${icon}`;
-      app.insertAdjacentHTML('beforeend', `<p>${statusDot(d)} <strong>${d.available ? t('available') : t('notAvailable')}</strong></p>`);
-      app.insertAdjacentHTML('beforeend', `<p>${t('volume')}: ${d.volumeMl} ml</p><p>${t('abvPct')}: ${d.abcPercent ?? d.alcPercent}%</p><p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>`);
-
-      if (d.parts.length) {
-        const table = document.createElement('table');
-        table.innerHTML = `<thead><tr><th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style="text-align:center">${t('inStock')}</th></tr></thead>`;
-        const tbody = document.createElement('tbody');
-        d.parts.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style="text-align:center">${dot(p.inStock)}</td>`;
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        app.appendChild(table);
-      }
-
-      if (d.description && d.description[lang]) {
-        app.insertAdjacentHTML('beforeend', `<p><strong>${t('description')}:</strong> ${d.description[lang]}</p>`);
-      }
+      const d = barData.drinks[name]; const app = document.getElementById('app'); app.innerHTML = <div class="back"><a data-back>${t('back')}</a></div><h1>${d.name}</h1><p>${statusDot(d)} <strong>${d.available ? t('available') : t('notAvailable')}</strong></p><p>${t('volume')}: ${d.volumeMl} ml</p><p>${t('abv')}: ${d.alcPercent}%</p><p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>;
+      const table = document.createElement('table'); table.innerHTML = <thead><tr><th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style="text-align:center">${t('inStock')}</th></tr></thead>;
+      const tbody = document.createElement('tbody'); d.parts.forEach(p => { const tr = document.createElement('tr'); tr.innerHTML = <td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style="text-align:center">${dot(p.inStock)}</td>; tbody.appendChild(tr); }); table.appendChild(tbody); app.appendChild(table);
+      const desc = d.description[lang]; if (desc) { const descEl = document.createElement('p'); descEl.innerHTML = <strong>${t('description')}:</strong> ${desc}; app.appendChild(descEl); }
     }
+    function renderDetails(name){ const d=barData.drinks[name]; const app=document.getElementById('app'); app.innerHTML=<div class=\"back\"><a data-back>${t('back')}</a></div><h1>${d.name}</h1><p>${statusDot(d)} <strong>${d.available? t('available'): t('notAvailable')}</strong></p><p>${t('volume')}: ${d.volumeMl} ml</p><p>${t('abv')}: ${d.alcPercent}%</p><p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>;
+      const table=document.createElement('table'); table.innerHTML=<thead><tr><th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style=\"text-align:center\">${t('inStock')}</th></tr></thead>; const tbody=document.createElement('tbody'); d.parts.forEach(p=>{ const tr=document.createElement('tr'); tr.innerHTML=<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style=\"text-align:center\">${dot(p.inStock)}</td>; tbody.appendChild(tr); }); table.appendChild(tbody); app.appendChild(table);
+      const desc=d.description[lang]; if(desc){ const descEl=document.createElement('p'); descEl.innerHTML=<strong>${t('description')}:</strong> ${desc}; app.appendChild(descEl);} }
 
-    function router() {
-      const params = new URLSearchParams(window.location.search);
-      const drink = params.get('drink');
-      if (drink && barData.drinks[drink]) renderDetails(decodeURIComponent(drink));
-      else renderList();
-    }
+    const router = () => { const params = new URLSearchParams(location.search); const drink = params.get('drink'); if (drink && barData.drinks[drink]) renderDetails(drink); else renderList(); };
+    const router=()=>{ const params=new URLSearchParams(location.search); const drink=params.get('drink'); if(drink&&barData.drinks[drink]) renderDetails(drink); else renderList(); };
 
-    document.body.addEventListener('click', e => {
-      const a = e.target.closest('a[data-drink], a[data-back]');
-      if (!a) return;
-      e.preventDefault();
-      if (a.dataset.back) history.pushState({}, '', window.location.pathname);
-      else history.pushState({}, '', `?drink=${encodeURIComponent(a.dataset.drink)}`);
-      router();
-    });
-
+    document.body.addEventListener('click', e => { const a = e.target.closest('a'); if (!a) return; if (a.dataset.drink) { e.preventDefault(); history.pushState({ drink: a.dataset.drink }, '', ?drink=${encodeURIComponent(a.dataset.drink)}); router(); } else if (a.dataset.back !== undefined) { e.preventDefault(); history.pushState({}, '', location.pathname); router(); } });
     document.getElementById('lang-en').addEventListener('click', () => { lang = 'en'; document.getElementById('lang-en').classList.add('active'); document.getElementById('lang-cs').classList.remove('active'); router(); });
     document.getElementById('lang-cs').addEventListener('click', () => { lang = 'cs'; document.getElementById('lang-cs').classList.add('active'); document.getElementById('lang-en').classList.remove('active'); router(); });
+    document.body.addEventListener('click',e=>{ const a=e.target.closest('a'); if(!a) return; if(a.dataset.drink){ e.preventDefault(); history.pushState({drink:a.dataset.drink},'',?drink=${encodeURIComponent(a.dataset.drink)}); router(); } else if(a.dataset.back!==undefined){ e.preventDefault(); history.pushState({},'',location.pathname); router(); }});
+    document.getElementById('lang-en').addEventListener('click',()=>{ lang='en'; document.getElementById('lang-en').classList.add('active'); document.getElementById('lang-cs').classList.remove('active'); router(); });
+    document.getElementById('lang-cs').addEventListener('click',()=>{ lang='cs'; document.getElementById('lang-cs').classList.add('active'); document.getElementById('lang-en').classList.remove('active'); router(); });
 
-    let barData = {};
-    (async () => {
-      try {
-        document.getElementById('app').textContent = t('loading');
-        barData = await loadBarData();
-        router();
-        setInterval(async () => { barData = await loadBarData(); router(); }, REFRESH_MS);
-      } catch (e) {
-        document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
-        console.error(e);
-      }
-    })();
+    (async () => { try { document.getElementById('app').textContent = t('loading'); barData = await loadBarData(); router(); setInterval(async () => { barData = await loadBarData(); router(); }, REFRESH_MS); } catch (e) { document.getElementById('app').innerHTML = <p class="err">${e.message}</p>; console.error(e); } })();
+    (async()=>{ try{ document.getElementById('app').textContent=t('loading'); barData=await loadBarData(); router(); setInterval(async()=>{ barData=await loadBarData(); router(); },REFRESH_MS); }catch(e){ document.getElementById('app').innerHTML=<p class="err">${e.message}</p>; console.error(e);} })();
   </script>
 </body>
 </html>
