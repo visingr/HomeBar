@@ -214,7 +214,10 @@
             ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
             : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
           ));
-          sList = [...sAvail, ...sNot];
+          // when shotSortAsc: available first, then unavailable; when false: unavailable first
+          sList = shotSortAsc
+            ? [...sAvail, ...sNot]
+            : [...sNot, ...sAvail];
         } else {
           sList.sort((a,b)=> {
             if(shotSortKey==='name') return shotSortAsc
