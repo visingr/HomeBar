@@ -5,274 +5,1286 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Home Bar</title>
   <link rel="icon" type="image/png" sizes="48x48" href="img/icon.png" />
-
-
-
   <style>
-    :root { --accent: #007bff; --border: #d0d0d0; --bg-head: #f4f4f4; --err: #c00; }
-    body { position: relative; font-family: system-ui, sans-serif; margin: 1.5rem; line-height: 1.5; }
-    .lang-switch { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.5rem; }
-    .lang-switch img { width: 24px; height: 24px; cursor: pointer; border: 1px solid transparent; border-radius: 0.25rem; }
+    :root { 
+      --accent: #007bff; 
+      --accent-dark: #0056b3;
+      --border: #d0d0d0; 
+      --bg-head: #f8f9fa; 
+      --bg-card: #ffffff;
+      --err: #dc3545; 
+      --success: #28a745;
+      --warning: #ffc107;
+      --shadow: 0 2px 4px rgba(0,0,0,0.1);
+      --radius: 8px;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body { 
+      position: relative; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      margin: 0; 
+      padding: 1.5rem; 
+      line-height: 1.6; 
+      background: #f5f5f5;
+      color: #333;
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    .header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 2rem;
+      background: var(--bg-card);
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    
+    .lang-switch { 
+      display: flex; 
+      gap: 0.5rem; 
+      align-items: center;
+    }
+    
+    .lang-switch img { 
+      width: 24px; 
+      height: 24px; 
+      cursor: pointer; 
+      border: 2px solid transparent; 
+      border-radius: 4px; 
+      transition: border-color 0.2s;
+    }
+    
     .lang-switch img.active { border-color: var(--accent); }
-    h1, h2 { margin-top: 1.5rem; font-size: 1.8rem; }
-    h2 { font-size: 1.4rem; }
-    a { color: var(--accent); text-decoration: none; cursor: pointer; }
-    a:hover { text-decoration: underline; }
-    .back { display: inline-block; margin-bottom: 1rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 0.25rem; background: var(--bg-head); }
-    .back a { font-size: 0.9rem; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-    th, td { border: 1px solid var(--border); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
-    th { background: var(--bg-head); cursor: pointer; user-select: none; }
-    .err { color: var(--err); max-width: 600px; }
-    .status { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 50%; vertical-align: middle; margin-right: 0.4rem; }
-    .status.ok { background: #28a745; }
-    .status.no { background: #dc3545; }
-    .sort-indicator { font-size: 0.6rem; margin-left: 0.2rem; }
-    .af-icon { height: 1em; vertical-align: middle; margin-left: 0.3em; }
+    
+    .user-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .cart-icon {
+      position: relative;
+      cursor: pointer;
+      padding: 0.5rem;
+      background: var(--accent);
+      color: white;
+      border-radius: var(--radius);
+      transition: background-color 0.2s;
+    }
+    
+    .cart-icon:hover { background: var(--accent-dark); }
+    
+    .cart-count {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--err);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+    }
+    
+    h1, h2 { 
+      margin: 0 0 1rem 0; 
+      color: #2c3e50;
+    }
+    
+    h1 { font-size: 2rem; font-weight: 300; }
+    h2 { font-size: 1.5rem; font-weight: 400; }
+    
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .btn:hover { 
+      background: var(--accent-dark); 
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    
+    .btn-small {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+    }
+    
+    .btn-danger {
+      background: var(--err);
+    }
+    
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    
+    .back { 
+      display: inline-block; 
+      margin-bottom: 1.5rem; 
+      padding: 0.5rem 1rem; 
+      background: var(--bg-card); 
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      text-decoration: none;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    
+    .back:hover { 
+      background: var(--bg-head); 
+      text-decoration: none;
+    }
+    
+    .drinks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .drink-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    
+    .drink-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .drink-card.unavailable {
+      opacity: 0.7;
+      background: #f8f9fa;
+    }
+    
+    .drink-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    
+    .drink-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin: 0;
+    }
+    
+    .drink-price {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .drink-info {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .drink-description {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    
+    .drink-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .status { 
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .status-dot {
+      width: 8px; 
+      height: 8px; 
+      border-radius: 50%; 
+    }
+    
+    .status.available { color: var(--success); }
+    .status.available .status-dot { background: var(--success); }
+    .status.unavailable { color: var(--err); }
+    .status.unavailable .status-dot { background: var(--err); }
+    
+    .af-icon { 
+      height: 1.2em; 
+      vertical-align: middle; 
+      margin-left: 0.5em; 
+    }
+    
+    /* Tables for shots and details */
+    table { 
+      border-collapse: collapse; 
+      width: 100%; 
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    
+    th, td { 
+      padding: 0.75rem 1rem; 
+      text-align: left; 
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th { 
+      background: var(--bg-head); 
+      cursor: pointer; 
+      user-select: none; 
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
+    th:hover { background: #e9ecef; }
+    
+    .sort-indicator { 
+      font-size: 0.7rem; 
+      margin-left: 0.3rem; 
+      color: var(--accent);
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+    }
+    
+    .modal-content {
+      background-color: var(--bg-card);
+      margin: 5% auto;
+      padding: 2rem;
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    
+    .close {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      color: #aaa;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close:hover { color: #000; }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    .error-message {
+      color: var(--err);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    
+    .success-message {
+      color: var(--success);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+    }
+    
+    .loading::after {
+      content: "";
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 0.5rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+    
+    .cart-total {
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-align: right;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 2px solid var(--border);
+    }
+    
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .quantity-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    
+    .quantity-btn:hover {
+      background: var(--bg-head);
+    }
+    
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .header { flex-direction: column; gap: 1rem; }
+      .drinks-grid { grid-template-columns: 1fr; }
+      .modal-content { margin: 10% auto; padding: 1.5rem; }
+      .drink-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+      .drink-actions { flex-direction: column; gap: 0.5rem; align-items: stretch; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="lang-switch">
-    <img id="lang-en" src="Lang/united-kingdom.png" alt="English" title="English" class="active">
-    <img id="lang-cs" src="Lang/czech-republic.png" alt="Čeština" title="Čeština">
+  <div class="container">
+    <div class="header">
+      <h1 id="main-title">Home Bar</h1>
+      <div class="lang-switch">
+        <img id="lang-en" src="Lang/united-kingdom.png" alt="English" title="English" class="active">
+        <img id="lang-cs" src="Lang/czech-republic.png" alt="Čeština" title="Čeština">
+      </div>
+      <div class="user-section">
+        <div id="user-info" class="user-info" style="display: none;"></div>
+        <div id="cart-icon" class="cart-icon" style="display: none;" title="Cart">
+          🛒
+          <span id="cart-count" class="cart-count" style="display: none;">0</span>
+        </div>
+        <button id="login-btn" class="btn btn-small">Sign In</button>
+        <button id="logout-btn" class="btn btn-small btn-secondary" style="display: none;">Sign Out</button>
+      </div>
+    </div>
+    
+    <div id="app">Loading…</div>
   </div>
-  <div id="app">Loading …</div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="login-title">Sign In</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn">Sign In</button>
+          <button type="button" id="register-toggle" class="btn btn-secondary">Register</button>
+        </div>
+        <div id="login-error" class="error-message" style="display: none;"></div>
+        <div id="login-success" class="success-message" style="display: none;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cart-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Your Order</h2>
+      <div id="cart-items"></div>
+      <div id="cart-total" class="cart-total"></div>
+      <div style="margin-top: 1.5rem;">
+        <button id="place-order" class="btn">Place Order</button>
+        <button id="clear-cart" class="btn btn-secondary">Clear Cart</button>
+      </div>
+      <div id="order-error" class="error-message" style="display: none;"></div>
+      <div id="order-success" class="success-message" style="display: none;"></div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script>
     /* CONFIG */
     const PUB_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwUNtFVPmX6ltXE7XyM12GlTYBTjadWSeUSbUZL7_IFYQANa2o-FSj9gDIAWxH2T-lse9nvlEyMQUL';
-    const SHEETS = { INVENTORY: { gid: 310073761 }, RECIPES: { gid: 358185124 } };
+    const SHEETS = { 
+      INVENTORY: { gid: 310073761 }, 
+      RECIPES: { gid: 358185124 },
+      USERS: { gid: 457253457 },
+      ORDERS: { gid: 217826964 }
+    };
     const CURRENCY = '€';
     const REFRESH_MS = 60 * 1000;
 
     /* TRANSLATIONS */
     const dict = {
-      en: { loading: 'Loading …', drinks: 'Drinks', shots: 'Shots (40 ml)', availability: 'Availability', price: 'Price', back: '← All Drinks', volume: 'Volume', abv: 'ABV', ingredient: 'Ingredient', amount: 'Amount (ml)', abvPct: 'ABV (%)', inStock: 'In Stock', available: 'Available', notAvailable: 'Not available', description: 'Description' },
-      cs: { loading: 'Načítání …', drinks: 'Nápoje', shots: 'Panáky (40 ml)', availability: 'Dostupnost', price: 'Cena', back: '← Všechny nápoje', volume: 'Objem', abv: 'Alkohol', ingredient: 'Ingredience', amount: 'Množství (ml)', abvPct: 'Alkohol (%)', inStock: 'Skladem', available: 'Dostupné', notAvailable: 'Není dostupné', description: 'Popis' }
+      en: { 
+        loading: 'Loading…', 
+        drinks: 'Cocktails', 
+        shots: 'Shots (40 ml)', 
+        availability: 'Availability', 
+        price: 'Price', 
+        back: '← All Drinks', 
+        volume: 'Volume', 
+        abv: 'ABV', 
+        ingredient: 'Ingredient', 
+        amount: 'Amount (ml)', 
+        abvPct: 'ABV (%)', 
+        inStock: 'In Stock', 
+        available: 'Available', 
+        notAvailable: 'Not available', 
+        description: 'Description',
+        addToCart: 'Add to Cart',
+        viewDetails: 'View Details',
+        signIn: 'Sign In',
+        signOut: 'Sign Out',
+        register: 'Register',
+        welcome: 'Welcome',
+        cart: 'Cart',
+        placeOrder: 'Place Order',
+        orderPlaced: 'Order placed successfully!',
+        loginError: 'Invalid email or password',
+        registerSuccess: 'Registration successful! Please sign in.',
+        name: 'Name'
+      },
+      cs: { 
+        loading: 'Načítání…', 
+        drinks: 'Koktejly', 
+        shots: 'Panáky (40 ml)', 
+        availability: 'Dostupnost', 
+        price: 'Cena', 
+        back: '← Všechny nápoje', 
+        volume: 'Objem', 
+        abv: 'Alkohol', 
+        ingredient: 'Ingredience', 
+        amount: 'Množství (ml)', 
+        abvPct: 'Alkohol (%)', 
+        inStock: 'Skladem', 
+        available: 'Dostupné', 
+        notAvailable: 'Není dostupné', 
+        description: 'Popis',
+        addToCart: 'Přidat do košíku',
+        viewDetails: 'Zobrazit detaily',
+        signIn: 'Přihlásit se',
+        signOut: 'Odhlásit se',
+        register: 'Registrovat',
+        welcome: 'Vítejte',
+        cart: 'Košík',
+        placeOrder: 'Objednat',
+        orderPlaced: 'Objednávka byla úspěšně zadána!',
+        loginError: 'Neplatný email nebo heslo',
+        registerSuccess: 'Registrace úspěšná! Prosím přihlaste se.',
+        name: 'Jméno'
+      }
     };
-    let lang = 'en'; function t(key) { return dict[lang][key]; }
+    
+    let lang = 'en';
+    function t(key) { return dict[lang][key] || key; }
 
-    /* SORT STATE */
-    let sortKey = 'name'; // 'name', 'availability', 'price'
+    /* STATE */
+    let sortKey = 'name';
     let sortAsc = true;
     let shotSortKey = 'name';
     let shotSortAsc = true;
+    let barData = {};
+    let currentUser = null;
+    let cart = [];
+    let isRegisterMode = false;
 
     /* HELPERS */
     const csvUrl = sheet => `${PUB_BASE}/pub?gid=${sheet.gid}&single=true&output=csv`;
-    const toNum  = v => typeof v === 'number' ? v : (!v ? 0 : parseFloat(String(v).replace(/%/g, '').replace(/,/g, '.')) || 0);
+    const toNum = v => typeof v === 'number' ? v : (!v ? 0 : parseFloat(String(v).replace(/%/g, '').replace(/,/g, '.')) || 0);
     const toBool = v => /^(y|yes|true|1)$/i.test(String(v).trim());
+    const hashPassword = password => CryptoJS.SHA256(password).toString();
+    const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
+    /* AUTH */
+    function initAuth() {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateUserUI();
+      }
+    }
+
+    function updateUserUI() {
+      const userInfo = document.getElementById('user-info');
+      const loginBtn = document.getElementById('login-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      const cartIcon = document.getElementById('cart-icon');
+
+      if (currentUser) {
+        userInfo.textContent = `${t('welcome')}, ${currentUser.name}`;
+        userInfo.style.display = 'block';
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
+        cartIcon.style.display = 'block';
+        updateCartUI();
+      } else {
+        userInfo.style.display = 'none';
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        cartIcon.style.display = 'none';
+        cart = [];
+      }
+    }
+
+    function updateCartUI() {
+      const cartCount = document.getElementById('cart-count');
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      
+      if (totalItems > 0) {
+        cartCount.textContent = totalItems;
+        cartCount.style.display = 'block';
+      } else {
+        cartCount.style.display = 'none';
+      }
+    }
+
+    /* DATA LOADING */
     async function fetchCsv(sheet) {
-      const res = await fetch(csvUrl(sheet)); if(!res.ok) throw new Error(`Cannot load GID ${sheet.gid}`);
+      const res = await fetch(csvUrl(sheet));
+      if (!res.ok) throw new Error(`Cannot load GID ${sheet.gid}`);
       return res.text();
     }
 
     async function loadBarData() {
-      const [invText, recText] = await Promise.all([ fetchCsv(SHEETS.INVENTORY), fetchCsv(SHEETS.RECIPES) ]);
+      const [invText, recText] = await Promise.all([
+        fetchCsv(SHEETS.INVENTORY),
+        fetchCsv(SHEETS.RECIPES)
+      ]);
+      
       const invRaw = Papa.parse(invText.trim(), { header: true }).data;
       const recRaw = Papa.parse(recText.trim(), { header: true }).data;
 
       const detect = (row, rx) => Object.keys(row).find(k => rx.test(k));
       const stockKey = detect(invRaw[0], /(stock|have|available|skladem)/i);
-      const abvKey   = detect(invRaw[0], /(alkohol|abv)/i) || 'Alkohol';
+      const abvKey = detect(invRaw[0], /(alkohol|abv)/i) || 'Alkohol';
       const priceKey = detect(invRaw[0], /(cena.*\/l|price.*\/l)/i) || 'Cena/L';
 
       const inventory = invRaw.filter(r => r.Name).map(r => {
         const a = toNum(r[abvKey]);
-        return { name: r.Name.trim(), abv: a > 1 ? a/100 : a, pricePerMl: toNum(r[priceKey])/1000, inStock: stockKey ? toBool(r[stockKey]) : true };
+        return {
+          name: r.Name.trim(),
+          abv: a > 1 ? a/100 : a,
+          pricePerMl: toNum(r[priceKey])/1000,
+          inStock: stockKey ? toBool(r[stockKey]) : true
+        };
       });
-      const invMap = Object.fromEntries(inventory.map(i => [i.name,i]));
-      const shots  = inventory.filter(i => i.abv > 0.05).map(i => ({ name: i.name, price: +(i.pricePerMl*40).toFixed(2), available: i.inStock }));
+      
+      const invMap = Object.fromEntries(inventory.map(i => [i.name, i]));
+      const shots = inventory.filter(i => i.abv > 0.05).map(i => ({
+        name: i.name,
+        price: +(i.pricePerMl * 40).toFixed(2),
+        available: i.inStock
+      }));
 
-      const names = Object.keys(recRaw[0]).filter(k => k!=='Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
-      const descRows = recRaw.filter((r, idx) => idx>0 && !r.Name && Object.keys(r).some(k=>k!=='Name' && r[k]));
-      const descRowCs = descRows[0]||{}, descRowEn = descRows[1]||{};
+      const names = Object.keys(recRaw[0]).filter(k => k !== 'Name' && k && !k.startsWith('_') && !/^Unnamed/i.test(k));
+      
+      // Get description rows (999th and 1000th rows)
+      const descRowCs = recRaw[999] || {};
+      const descRowEn = recRaw[1000] || {};
 
       const drinks = {};
       recRaw.filter(r => r.Name).forEach(r => {
-        const iname = r.Name.trim(); if(!invMap[iname]) return;
+        const iname = r.Name.trim();
+        if (!invMap[iname]) return;
+        
         names.forEach(dn => {
-          const ml = toNum(r[dn]); if(ml<=0) return;
+          const ml = toNum(r[dn]);
+          if (ml <= 0) return;
+          
           const inv = invMap[iname];
-          if(!drinks[dn]) drinks[dn] = { name: dn, volumeMl:0, alcPercent:0, price:0, available:true, missing:[], parts:[], description:{ en:descRowEn[dn]||'', cs:descRowCs[dn]||'' }};
+          if (!drinks[dn]) {
+            drinks[dn] = {
+              name: dn,
+              volumeMl: 0,
+              alcPercent: 0,
+              price: 0,
+              available: true,
+              missing: [],
+              parts: [],
+              description: {
+                en: descRowEn[dn] || '',
+                cs: descRowCs[dn] || ''
+              }
+            };
+          }
+          
           const d = drinks[dn];
           d.volumeMl += ml;
           d.price += ml * inv.pricePerMl;
           d.alcPercent += ml * inv.abv;
-          d.parts.push({ ingredient: iname, ml, abv: +(inv.abv*100).toFixed(1), inStock: inv.inStock });
-          if(!inv.inStock) { d.available = false; if(!d.missing.includes(iname)) d.missing.push(iname); }
+          d.parts.push({
+            ingredient: iname,
+            ml,
+            abv: +(inv.abv * 100).toFixed(1),
+            inStock: inv.inStock
+          });
+          
+          if (!inv.inStock) {
+            d.available = false;
+            if (!d.missing.includes(iname)) d.missing.push(iname);
+          }
         });
       });
-      Object.values(drinks).forEach(d => { d.alcPercent = +(d.alcPercent/d.volumeMl*100).toFixed(2); d.price=+d.price.toFixed(2); d.volumeMl=+d.volumeMl.toFixed(0); });
+
+      Object.values(drinks).forEach(d => {
+        d.alcPercent = +(d.alcPercent / d.volumeMl * 100).toFixed(2);
+        d.price = +d.price.toFixed(2);
+        d.volumeMl = +d.volumeMl.toFixed(0);
+      });
 
       return { drinks, shots };
     }
 
-    function dot(avail, missing=[]) {
-      const cls = avail ? 'ok' : 'no';
-      const title = avail ? t('available') : missing.length ? `Missing: ${missing.join(', ')}` : t('notAvailable');
-      return `<span class="status ${cls}" title="${title}"></span>`;
-    }
-    function statusDot(d) { return dot(d.available, d.missing); }
-
-    let barData = {};
-
+    /* RENDERING */
     function renderList() {
       const { drinks, shots } = barData;
       const app = document.getElementById('app');
-      app.innerHTML = `<h1>${t('drinks')}</h1>`;
-
-      // Drinks Table
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const trHead = document.createElement('tr');
-      ['name','availability','price'].forEach(key => {
-        const th = document.createElement('th');
-        const label = key==='name' ? t('drinks') : key==='availability' ? t('availability') : t('price');
-        const active = sortKey===key;
-        const indicator = active ? (sortAsc ? '▲' : '▼') : '';
-        th.innerHTML = `${label}<span class="sort-indicator">${indicator}</span>`;
-        th.style.textAlign = key==='availability' ? 'center' : 'left';
-        th.addEventListener('click', ()=>{
-          if(sortKey===key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = true; }
-          renderList();
-        });
-        trHead.appendChild(th);
-      });
-      thead.appendChild(trHead);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      let list = Object.values(drinks).slice();
-      if(sortKey==='availability') {
-        const availList = list.filter(d=>d.available);
-        const notList   = list.filter(d=>!d.available);
-        // sort both alphabetically
-        availList.sort((a,b)=> sortAsc
-          ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-          : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-        );
-        notList.sort((a,b)=> sortAsc
-          ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-          : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-        );
-        // when sortAsc: available first, then unavailable; when sortDesc: unavailable first
-        list = sortAsc
-          ? [...availList, ...notList]
-          : [...notList, ...availList];
-      } else {
-        list.sort((a,b)=> {
-          if(sortKey==='name') return sortAsc
+      
+      // Drinks grid
+      const drinksArray = Object.values(drinks);
+      
+      // Sort drinks
+      if (sortKey === 'availability') {
+        const availList = drinksArray.filter(d => d.available);
+        const notList = drinksArray.filter(d => !d.available);
+        [availList, notList].forEach(arr => 
+          arr.sort((a, b) => sortAsc
             ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-            : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+            : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
+          )
+        );
+        drinksArray.splice(0, drinksArray.length, ...(sortAsc ? [...availList, ...notList] : [...notList, ...availList]));
+      } else {
+        drinksArray.sort((a, b) => {
+          if (sortKey === 'name') {
+            return sortAsc
+              ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+              : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+          }
           return sortAsc ? a.price - b.price : b.price - a.price;
         });
       }
 
-      list.forEach(d => {
+      let html = `<h2>${t('drinks')}</h2>`;
+      html += '<div class="drinks-grid">';
+      
+      drinksArray.forEach(d => {
         const isAF = d.alcPercent < 0.1;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            <a data-drink="${d.name}">${d.name}</a>
-            ${isAF ? '<img src="img/AlcoholFree.png" alt="Alcohol Free" class="af-icon">' : ''}
-          </td>
-          <td style="text-align:center">${statusDot(d)}</td>
-          <td>${CURRENCY}${d.price.toFixed(2)}</td>
+        const statusClass = d.available ? 'available' : 'unavailable';
+        const statusText = d.available ? t('available') : t('notAvailable');
+        const description = d.description[lang] || '';
+        
+        html += `
+          <div class="drink-card ${d.available ? '' : 'unavailable'}" data-drink="${d.name}">
+            <div class="drink-header">
+              <h3 class="drink-name">
+                ${d.name}
+                ${isAF ? '<img src="img/AlcoholFree.png" alt="Alcohol Free" class="af-icon">' : ''}
+              </h3>
+              <div class="drink-price">${CURRENCY}${d.price.toFixed(2)}</div>
+            </div>
+            <div class="drink-info">
+              <span>${d.volumeMl} ml</span>
+              <span>${d.alcPercent}% ABV</span>
+            </div>
+            ${description ? `<div class="drink-description">${description}</div>` : ''}
+            <div class="drink-actions">
+              <div class="status ${statusClass}">
+                <span class="status-dot"></span>
+                ${statusText}
+              </div>
+              ${currentUser && d.available ? `
+                <button class="btn btn-small" onclick="addToCart('${d.name}')">${t('addToCart')}</button>
+              ` : ''}
+            </div>
+          </div>
         `;
-        tbody.appendChild(tr);
       });
-      table.appendChild(tbody);
-      app.appendChild(table);
+      
+      html += '</div>';
 
-      // Shots Table
-      if(shots.length) {
-        app.insertAdjacentHTML('beforeend', `<h2>${t('shots')}</h2>`);
-        const st = document.createElement('table');
-        const sHead = document.createElement('thead');
-        const sr = document.createElement('tr');
-        ['name','availability','price'].forEach(key => {
-          const th = document.createElement('th');
-          const label = key==='name' ? t('shots') : key==='availability' ? t('availability') : t('price');
-          const active = shotSortKey===key;
-          const indicator = active ? (shotSortAsc ? '▲' : '▼') : '';
-          th.innerHTML = `${label}<span class="sort-indicator">${indicator}</span>`;
-          th.style.textAlign = key==='availability' ? 'center' : 'left';
-          th.addEventListener('click', ()=>{
-            if(shotSortKey===key) shotSortAsc = !shotSortAsc; else { shotSortKey = key; shotSortAsc = true; }
-            renderList();
-          });
-          sr.appendChild(th);
+      // Shots table
+      if (shots.length) {
+        html += `<h2>${t('shots')}</h2>`;
+        html += '<table><thead><tr>';
+        html += `<th>${t('shots')}</th><th style="text-align:center">${t('availability')}</th><th>${t('price')}</th>`;
+        if (currentUser) html += '<th>Action</th>';
+        html += '</tr></thead><tbody>';
+        
+        shots.forEach(s => {
+          const statusClass = s.available ? 'available' : 'unavailable';
+          const statusText = s.available ? t('available') : t('notAvailable');
+          
+          html += '<tr>';
+          html += `<td>${s.name}</td>`;
+          html += `<td style="text-align:center"><div class="status ${statusClass}"><span class="status-dot"></span> ${statusText}</div></td>`;
+          html += `<td>${CURRENCY}${s.price.toFixed(2)}</td>`;
+          if (currentUser && s.available) {
+            html += `<td><button class="btn btn-small" onclick="addToCart('${s.name}', true)">${t('addToCart')}</button></td>`;
+          } else if (currentUser) {
+            html += '<td></td>';
+          }
+          html += '</tr>';
         });
-        sHead.appendChild(sr);
-        st.appendChild(sHead);
-
-        const sb = document.createElement('tbody');
-        let sList = shots.slice();
-        if(shotSortKey==='availability') {
-          const sAvail = sList.filter(s=>s.available);
-          const sNot   = sList.filter(s=>!s.available);
-          [sAvail, sNot].forEach(arr => arr.sort((a,b)=> shotSortAsc
-            ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-            : b.name.toLowerCase().localeCompare(a.name.toLowerCase())
-          ));
-          // when shotSortAsc: available first, then unavailable; when false: unavailable first
-          sList = shotSortAsc
-            ? [...sAvail, ...sNot]
-            : [...sNot, ...sAvail];
-        } else {
-          sList.sort((a,b)=> {
-            if(shotSortKey==='name') return shotSortAsc
-              ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-              : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
-            return shotSortAsc ? a.price - b.price : b.price - a.price;
-          });
-        }
-        sList.forEach(s => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${s.name}</td>
-            <td style="text-align:center">${dot(s.available)}</td>
-            <td>${CURRENCY}${s.price.toFixed(2)}</td>
-          `;
-          sb.appendChild(tr);
-        });
-        st.appendChild(sb);
-        app.appendChild(st);
+        
+        html += '</tbody></table>';
       }
+
+      app.innerHTML = html;
     }
 
     function renderDetails(name) {
       const d = barData.drinks[name];
+      if (!d) return;
+      
       const app = document.getElementById('app');
-      app.innerHTML = `<div class="back"><a data-back>${t('back')}</a></div><h1>${d.name}</h1><p>${statusDot(d)} <strong>${d.available? t('available'): t('notAvailable')}</strong></p><p>${t('volume')}: ${d.volumeMl} ml</p><p>${t('abv')}: ${d.alcPercent}%</p><p>${t('price')}: ${CURRENCY}${d.price.toFixed(2)}</p>`;
-      const table = document.createElement('table');
-      table.innerHTML = `<thead><tr><th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style="text-align:center">${t('inStock')}</th></tr></thead>`;
-      const tbody = document.createElement('tbody');
-      d.parts.forEach(p=>{ const tr = document.createElement('tr'); tr.innerHTML = `<td>${p.ingredient}</td><td>${p.ml}</td><td>${p.abv}</td><td style="text-align:center">${dot(p.inStock)}</td>`; tbody.appendChild(tr); });
-      table.appendChild(tbody);
-      app.appendChild(table);
-      const desc = d.description[lang]; if(desc) app.insertAdjacentHTML('beforeend', `<p><strong>${t('description')}:</strong> ${desc}</p>`);
+      const statusClass = d.available ? 'available' : 'unavailable';
+      const statusText = d.available ? t('available') : t('notAvailable');
+      const description = d.description[lang] || '';
+      
+      let html = `
+        <div class="back">
+          <a onclick="goBack()">${t('back')}</a>
+        </div>
+        <div class="drink-card">
+          <div class="drink-header">
+            <h1 class="drink-name">${d.name}</h1>
+            <div class="drink-price">${CURRENCY}${d.price.toFixed(2)}</div>
+          </div>
+          <div class="status ${statusClass}" style="margin-bottom: 1rem;">
+            <span class="status-dot"></span>
+            ${statusText}
+          </div>
+          <div class="drink-info">
+            <span><strong>${t('volume')}:</strong> ${d.volumeMl} ml</span>
+            <span><strong>${t('abv')}:</strong> ${d.alcPercent}%</span>
+          </div>
+          ${description ? `<div class="drink-description"><strong>${t('description')}:</strong> ${description}</div>` : ''}
+          ${currentUser && d.available ? `
+            <div style="margin-top: 1rem;">
+              <button class="btn" onclick="addToCart('${d.name}')">${t('addToCart')}</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+      
+      // Ingredients table
+      html += '<h2>Ingredients</h2>';
+      html += '<table><thead><tr>';
+      html += `<th>${t('ingredient')}</th><th>${t('amount')}</th><th>${t('abvPct')}</th><th style="text-align:center">${t('inStock')}</th>`;
+      html += '</tr></thead><tbody>';
+      
+      d.parts.forEach(p => {
+        const ingredientStatus = p.inStock ? 'available' : 'unavailable';
+        const ingredientStatusText = p.inStock ? t('available') : t('notAvailable');
+        
+        html += '<tr>';
+        html += `<td>${p.ingredient}</td>`;
+        html += `<td>${p.ml} ml</td>`;
+        html += `<td>${p.abv}%</td>`;
+        html += `<td style="text-align:center"><div class="status ${ingredientStatus}"><span class="status-dot"></span> ${ingredientStatusText}</div></td>`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      app.innerHTML = html;
     }
 
-    function router() { const params = new URLSearchParams(location.search); const drink = params.get('drink'); if(drink && barData.drinks[drink]) renderDetails(drink); else renderList(); }
+    /* CART FUNCTIONS */
+    function addToCart(itemName, isShot = false) {
+      if (!currentUser) return;
+      
+      const item = isShot 
+        ? barData.shots.find(s => s.name === itemName)
+        : barData.drinks[itemName];
+        
+      if (!item || !item.available) return;
+      
+      const existingItem = cart.find(c => c.name === itemName && c.isShot === isShot);
+      
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({
+          name: itemName,
+          price: item.price,
+          quantity: 1,
+          isShot: isShot
+        });
+      }
+      
+      updateCartUI();
+      
+      // Show brief feedback
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.textContent = 'Added!';
+      btn.style.background = '#28a745';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = '';
+      }, 1000);
+    }
 
-    document.body.addEventListener('click', e => { const a = e.target.closest('a'); if(!a) return; if(a.dataset.drink) { e.preventDefault(); history.pushState({drink:a.dataset.drink}, '', `?drink=${encodeURIComponent(a.dataset.drink)}`); router(); } else if(a.dataset.back!==undefined) { e.preventDefault(); history.pushState({}, '', location.pathname); router(); } });
-    document.getElementById('lang-en').addEventListener('click', ()=>{ lang='en'; document.getElementById('lang-en').classList.add('active'); document.getElementById('lang-cs').classList.remove('active'); router(); });
-    document.getElementById('lang-cs').addEventListener('click', ()=>{ lang='cs'; document.getElementById('lang-cs').classList.add('active'); document.getElementById('lang-en').classList.remove('active'); router(); });
+    function updateCartQuantity(itemName, isShot, change) {
+      const item = cart.find(c => c.name === itemName && c.isShot === isShot);
+      if (!item) return;
+      
+      item.quantity += change;
+      if (item.quantity <= 0) {
+        cart = cart.filter(c => !(c.name === itemName && c.isShot === isShot));
+      }
+      
+      updateCartUI();
+      renderCart();
+    }
 
-    (async()=>{
+    function renderCart() {
+      const cartItems = document.getElementById('cart-items');
+      const cartTotal = document.getElementById('cart-total');
+      
+      if (cart.length === 0) {
+        cartItems.innerHTML = '<p>Your cart is empty</p>';
+        cartTotal.innerHTML = '';
+        return;
+      }
+      
+      let html = '';
+      let total = 0;
+      
+      cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        html += `
+          <div class="cart-item">
+            <div>
+              <strong>${item.name}</strong> ${item.isShot ? '(Shot)' : ''}
+              <br>
+              <small>${CURRENCY}${item.price.toFixed(2)} each</small>
+            </div>
+            <div class="quantity-controls">
+              <button class="quantity-btn" onclick="updateCartQuantity('${item.name}', ${item.isShot}, -1)">−</button>
+              <span style="margin: 0 0.5rem;">${item.quantity}</span>
+              <button class="quantity-btn" onclick="updateCartQuantity('${item.name}', ${item.isShot}, 1)">+</button>
+            </div>
+            <div>${CURRENCY}${itemTotal.toFixed(2)}</div>
+          </div>
+        `;
+      });
+      
+      cartItems.innerHTML = html;
+      cartTotal.innerHTML = `<strong>Total: ${CURRENCY}${total.toFixed(2)}</strong>`;
+    }
+
+    /* USER MANAGEMENT */
+    async function loadUsers() {
       try {
-        document.getElementById('app').textContent = t('loading');
+        const usersText = await fetchCsv(SHEETS.USERS);
+        const usersRaw = Papa.parse(usersText.trim(), { header: true }).data;
+        return usersRaw.filter(u => u.email && u.password);
+      } catch (error) {
+        console.warn('Users sheet not available:', error);
+        return [];
+      }
+    }
+
+    async function saveUser(userData) {
+      // In a real implementation, you'd need to append to the Google Sheet
+      // For now, we'll simulate this by storing in localStorage
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      users.push(userData);
+      localStorage.setItem('users', JSON.stringify(users));
+      return true;
+    }
+
+    async function authenticateUser(email, password) {
+      const hashedPassword = hashPassword(password);
+      
+      // Try to load from Google Sheets first
+      try {
+        const users = await loadUsers();
+        const user = users.find(u => u.email === email && u.password === hashedPassword);
+        if (user) return { name: user.name, email: user.email };
+      } catch (error) {
+        console.warn('Could not load users from sheets, checking localStorage');
+      }
+      
+      // Fallback to localStorage
+      const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const localUser = localUsers.find(u => u.email === email && u.password === hashedPassword);
+      return localUser ? { name: localUser.name, email: localUser.email } : null;
+    }
+
+    async function registerUser(name, email, password) {
+      const hashedPassword = hashPassword(password);
+      const userData = {
+        name,
+        email,
+        password: hashedPassword,
+        created: new Date().toISOString()
+      };
+      
+      return await saveUser(userData);
+    }
+
+    async function saveOrder(orderData) {
+      // In a real implementation, you'd append to the Google Sheet
+      // For now, we'll store in localStorage
+      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+      orders.push(orderData);
+      localStorage.setItem('orders', JSON.stringify(orders));
+      return true;
+    }
+
+    async function placeOrder() {
+      if (!currentUser || cart.length === 0) return;
+      
+      const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const orderData = {
+        id: generateId(),
+        userEmail: currentUser.email,
+        items: [...cart],
+        total: +total.toFixed(2),
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      };
+      
+      try {
+        await saveOrder(orderData);
+        cart = [];
+        updateCartUI();
+        
+        document.getElementById('order-success').textContent = t('orderPlaced');
+        document.getElementById('order-success').style.display = 'block';
+        document.getElementById('order-error').style.display = 'none';
+        
+        setTimeout(() => {
+          document.getElementById('cart-modal').style.display = 'none';
+          document.getElementById('order-success').style.display = 'none';
+        }, 2000);
+        
+      } catch (error) {
+        document.getElementById('order-error').textContent = 'Failed to place order. Please try again.';
+        document.getElementById('order-error').style.display = 'block';
+        document.getElementById('order-success').style.display = 'none';
+      }
+    }
+
+    /* NAVIGATION */
+    function goBack() {
+      history.pushState({}, '', location.pathname);
+      router();
+    }
+
+    function router() {
+      const params = new URLSearchParams(location.search);
+      const drink = params.get('drink');
+      
+      if (drink && barData.drinks && barData.drinks[drink]) {
+        renderDetails(drink);
+      } else {
+        renderList();
+      }
+    }
+
+    /* EVENT LISTENERS */
+    document.addEventListener('DOMContentLoaded', function() {
+      initAuth();
+      
+      // Language switching
+      document.getElementById('lang-en').addEventListener('click', () => {
+        lang = 'en';
+        document.getElementById('lang-en').classList.add('active');
+        document.getElementById('lang-cs').classList.remove('active');
+        updateTranslations();
+        router();
+      });
+      
+      document.getElementById('lang-cs').addEventListener('click', () => {
+        lang = 'cs';
+        document.getElementById('lang-cs').classList.add('active');
+        document.getElementById('lang-en').classList.remove('active');
+        updateTranslations();
+        router();
+      });
+      
+      // Login modal
+      const loginModal = document.getElementById('login-modal');
+      const cartModal = document.getElementById('cart-modal');
+      
+      document.getElementById('login-btn').addEventListener('click', () => {
+        loginModal.style.display = 'block';
+        isRegisterMode = false;
+        updateLoginForm();
+      });
+      
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        updateUserUI();
+        router();
+      });
+      
+      document.getElementById('cart-icon').addEventListener('click', () => {
+        renderCart();
+        cartModal.style.display = 'block';
+      });
+      
+      // Close modals
+      document.querySelectorAll('.close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', (e) => {
+          e.target.closest('.modal').style.display = 'none';
+        });
+      });
+      
+      // Close modals on outside click
+      window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+          e.target.style.display = 'none';
+        }
+      });
+      
+      // Login form
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const name = document.getElementById('name') ? document.getElementById('name').value : '';
+        
+        try {
+          if (isRegisterMode) {
+            if (!name) {
+              throw new Error('Name is required');
+            }
+            await registerUser(name, email, password);
+            document.getElementById('login-success').textContent = t('registerSuccess');
+            document.getElementById('login-success').style.display = 'block';
+            document.getElementById('login-error').style.display = 'none';
+            
+            setTimeout(() => {
+              isRegisterMode = false;
+              updateLoginForm();
+              document.getElementById('login-success').style.display = 'none';
+            }, 2000);
+          } else {
+            const user = await authenticateUser(email, password);
+            if (user) {
+              currentUser = user;
+              localStorage.setItem('currentUser', JSON.stringify(user));
+              updateUserUI();
+              loginModal.style.display = 'none';
+              document.getElementById('login-form').reset();
+              document.getElementById('login-error').style.display = 'none';
+            } else {
+              throw new Error(t('loginError'));
+            }
+          }
+        } catch (error) {
+          document.getElementById('login-error').textContent = error.message;
+          document.getElementById('login-error').style.display = 'block';
+          document.getElementById('login-success').style.display = 'none';
+        }
+      });
+      
+      document.getElementById('register-toggle').addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode;
+        updateLoginForm();
+      });
+      
+      // Cart actions
+      document.getElementById('place-order').addEventListener('click', placeOrder);
+      
+      document.getElementById('clear-cart').addEventListener('click', () => {
+        cart = [];
+        updateCartUI();
+        renderCart();
+      });
+      
+      // Drink card clicks
+      document.addEventListener('click', (e) => {
+        const drinkCard = e.target.closest('.drink-card[data-drink]');
+        if (drinkCard && !e.target.closest('button')) {
+          const drinkName = drinkCard.dataset.drink;
+          history.pushState({ drink: drinkName }, '', `?drink=${encodeURIComponent(drinkName)}`);
+          router();
+        }
+      });
+      
+      // Browser back/forward
+      window.addEventListener('popstate', router);
+    });
+
+    function updateTranslations() {
+      document.getElementById('main-title').textContent = 'Home Bar';
+      document.getElementById('login-btn').textContent = t('signIn');
+      document.getElementById('logout-btn').textContent = t('signOut');
+      document.getElementById('login-title').textContent = isRegisterMode ? t('register') : t('signIn');
+      
+      const registerToggle = document.getElementById('register-toggle');
+      if (registerToggle) {
+        registerToggle.textContent = isRegisterMode ? t('signIn') : t('register');
+      }
+    }
+
+    function updateLoginForm() {
+      const form = document.getElementById('login-form');
+      const title = document.getElementById('login-title');
+      const registerToggle = document.getElementById('register-toggle');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      
+      title.textContent = isRegisterMode ? t('register') : t('signIn');
+      submitBtn.textContent = isRegisterMode ? t('register') : t('signIn');
+      registerToggle.textContent = isRegisterMode ? t('signIn') : t('register');
+      
+      // Add/remove name field for registration
+      let nameGroup = form.querySelector('.name-group');
+      if (isRegisterMode && !nameGroup) {
+        nameGroup = document.createElement('div');
+        nameGroup.className = 'form-group name-group';
+        nameGroup.innerHTML = `
+          <label for="name">${t('name')}:</label>
+          <input type="text" id="name" name="name" required>
+        `;
+        form.insertBefore(nameGroup, form.children[1]);
+      } else if (!isRegisterMode && nameGroup) {
+        nameGroup.remove();
+      }
+      
+      // Clear form
+      form.reset();
+      document.getElementById('login-error').style.display = 'none';
+      document.getElementById('login-success').style.display = 'none';
+    }
+
+    /* INITIALIZE */
+    (async () => {
+      try {
+        document.getElementById('app').innerHTML = `<div class="loading">${t('loading')}</div>`;
         barData = await loadBarData();
         router();
-        setInterval(async()=>{ barData = await loadBarData(); router(); }, REFRESH_MS);
-      } catch(e) {
-        document.getElementById('app').innerHTML = `<p class="err">${e.message}</p>`;
-        console.error(e);
+        
+        // Refresh data periodically
+        setInterval(async () => {
+          try {
+            barData = await loadBarData();
+            router();
+          } catch (error) {
+            console.error('Failed to refresh data:', error);
+          }
+        }, REFRESH_MS);
+        
+      } catch (error) {
+        document.getElementById('app').innerHTML = `<div class="error-message">Error loading data: ${error.message}</div>`;
+        console.error(error);
       }
     })();
   </script>
